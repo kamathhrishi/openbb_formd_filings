@@ -1,21 +1,104 @@
 {
-    "hello_world": {
-      "name": "Hello World",
-      "description": "A simple markdown widget that displays Hello World",
-      "category": "Hello World",
-      "type": "markdown",
-      "endpoint": "hello_world",
-      "gridData": {"w": 1200, "h": 400},
-      "source": "None",
-      "params": [
-        {
-          "paramName": "name",
-          "value": "",
-          "label": "Name",
-          "type": "text",
-          "description": "Enter your name"
-        }
-      ]
+  "hello_world": {
+    "name": "Hello World",
+    "description": "A simple markdown widget that displays Hello World with market info",
+    "category": "Hello World",
+    "type": "markdown",
+    "endpoint": "hello_world",
+    "gridData": {"w": 1200, "h": 400},
+    "source": "None",
+    "params": [
+      {
+        "paramName": "name",
+        "value": "",
+        "label": "Name",
+        "type": "text",
+        "description": "Enter your name"
+      }
+    ]
+  },
+  "nasdaq_chart": {
+    "name": "NASDAQ Historical Chart",
+    "description": "Interactive candlestick chart showing NASDAQ Composite historical data with volume",
+    "category": "Market Data",
+    "type": "chart",
+    "endpoint": "nasdaq_chart",
+    "gridData": {"w": 1200, "h": 600},
+    "source": "Yahoo Finance",
+    "params": [
+      {
+        "paramName": "period",
+        "value": "1y",
+        "label": "Time Period",
+        "type": "select",
+        "description": "Select time period for historical data",
+        "options": ["1mo", "3mo", "6mo", "1y", "2y", "5y", "max"]
+      },
+      {
+        "paramName": "interval",
+        "value": "1d",
+        "label": "Data Interval",
+        "type": "select", 
+        "description": "Select data interval",
+        "options": ["1d", "5d", "1wk", "1mo", "3mo"]
+      }
+    ]
+  },
+  "nasdaq_summary": {
+    "name": "NASDAQ Market Summary",
+    "description": "Current NASDAQ market summary with key metrics and price changes",
+    "category": "Market Data",
+    "type": "table",
+    "endpoint": "nasdaq_summary",
+    "gridData": {"w": 800, "h": 400},
+    "source": "Yahoo Finance",
+    "data": {
+      "table": {
+        "showAll": true,
+        "columnsDefs": [
+          {
+            "headerName": "Metric",
+            "field": "metric",
+            "width": 200
+          },
+          {
+            "headerName": "Value",
+            "field": "value",
+            "width": 150
+          },
+          {
+            "headerName": "Change",
+            "field": "change",
+            "width": 200
+          }
+        ]
+      }
     }
-
+  },
+  "stock_comparison": {
+    "name": "Stock Performance Comparison",
+    "description": "Compare multiple stocks performance over time (normalized percentage returns)",
+    "category": "Market Data",
+    "type": "chart",
+    "endpoint": "stock_comparison",
+    "gridData": {"w": 1200, "h": 600},
+    "source": "Yahoo Finance",
+    "params": [
+      {
+        "paramName": "symbols",
+        "value": "AAPL,GOOGL,MSFT",
+        "label": "Stock Symbols",
+        "type": "text",
+        "description": "Enter stock symbols separated by commas (e.g., AAPL,GOOGL,MSFT)"
+      },
+      {
+        "paramName": "period",
+        "value": "1y",
+        "label": "Time Period",
+        "type": "select",
+        "description": "Select time period for comparison",
+        "options": ["1mo", "3mo", "6mo", "1y", "2y", "5y"]
+      }
+    ]
   }
+}
