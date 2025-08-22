@@ -5,7 +5,7 @@
       "category": "Hello World",
       "type": "markdown",
       "endpoint": "hello_world",
-      "gridData": {"w": 12, "h": 4},
+      "gridData": {"w": 1200, "h": 400},
       "source": "None",
       "params": [
         {
@@ -17,4 +17,5 @@
         }
       ]
     }
+
   }
