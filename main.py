@@ -18,6 +18,7 @@ app = FastAPI(
 # Define allowed origins for CORS (Cross-Origin Resource Sharing)
 # Updated to include Railway domains
 origins = [
+    "*",
     "https://pro.openbb.co",
     "https://*.railway.app",  # Allow all Railway subdomains
     "http://localhost:3000",  # For local development
@@ -175,3 +176,4 @@ if __name__ == "__main__":
         reload=False,
         log_level="info"
     )
+
