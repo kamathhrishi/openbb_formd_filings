@@ -1,9 +1,11 @@
 # Import required libraries
 import json
+import os
 from pathlib import Path
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+import uvicorn
 
 
 # Initialize FastAPI application with metadata
@@ -81,3 +83,33 @@ def hello_world(name: str = ""):
     """
     # Return a markdown-formatted greeting with the provided name
     return f"# Hello World {name}"
+
+
+if __name__ == "__main__":
+    print("🚀 Starting Form D Fundraises Dashboard (Backend API with Enhanced Schema)")
+    print(f"💾 Database: PostgreSQL (Enhanced Schema with Related Tables)")
+    print("📊 This backend reads from the enhanced database schema")
+    print("🔧 Use 'python form_d_batch_processor.py' to populate the database with XML files")
+    print("⚡ Backend starts instantly with immediate download of last 7 days of filings")
+    print("🔄 Auto-ingest will download and update filings every minute")
+    print("🛡️  Enhanced rate limiting to prevent SEC 429 errors")
+    print("🗄️ Enhanced Database Schema:")
+    print("   • Main filings table with comprehensive fields")
+    print("   • Related persons table for person details")
+    print("   • Security attributes table for flexible security data")
+    print("   • Federal exemptions table")
+    print("   • Use of proceeds table")
+    print("🌐 Dashboard will be available at: http://localhost:8888")
+    print("📋 Schema info: http://localhost:8888/api/schema/info")
+    print("🧪 Test immediate download: python test_immediate_download.py")
+    print("🔧 Configure rate limiting: python configure_rate_limiting.py")
+    print("=" * 60)
+
+    port = int(os.getenv("PORT", 8888))
+    uvicorn.run(
+        app,
+        host="0.0.0.0",
+        port=port,
+        reload=False,
+        log_level="info"
+    )
