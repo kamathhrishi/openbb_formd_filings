@@ -34,7 +34,7 @@ def read_root():
         "Info": "S&P 500 Data Hub",
         "status": "running",
         "symbol": "^GSPC (S&P 500)",
-        "data_source": "yfinance + fallbacks"
+        "data_source": "yfinance"
     }
 
 @app.get("/widgets.json")
@@ -82,82 +82,72 @@ def get_apps():
 
 @app.get("/sp500_1y")
 def get_sp500_1y():
-    """Get S&P 500 1-year data"""
+    """Get S&P 500 1-year data - basic yfinance only"""
     try:
         print("=== Fetching S&P 500 Data ===")
         
         data_source = "Sample Data"
         hist = None
         
-        # Try multiple S&P 500 symbols
-        sp500_symbols = ["^GSPC", "SPY", "VOO"]  # S&P 500 Index, SPDR ETF, Vanguard ETF
+        # Try S&P 500 symbols with minimal yfinance parameters
+        sp500_symbols = ["^GSPC", "SPY", "VOO"]
         
         for symbol in sp500_symbols:
             try:
-                print(f"Trying {symbol}...")
+                print(f"Trying {symbol} with minimal yfinance...")
                 
-                # Create custom session
-                session = requests.Session()
-                session.headers.update({
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-                    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-                    'Accept-Language': 'en-US,en;q=0.5',
-                    'Accept-Encoding': 'gzip, deflate',
-                    'Connection': 'keep-alive',
-                    'Upgrade-Insecure-Requests': '1',
-                })
+                # Use absolutely minimal yfinance call
+                ticker = yf.Ticker(symbol)
+                hist = ticker.history(period="1y")  # Only period, no other params
                 
-                # Try yfinance with session
-                ticker = yf.Ticker(symbol, session=session)
-                hist = ticker.history(period="1y", interval="1d", timeout=15, threads=False)
+                print(f"{symbol} returned: {len(hist) if hist is not None else 0} rows")
                 
-                if not hist.empty and len(hist) > 50:
+                if hist is not None and not hist.empty and len(hist) > 50:
                     print(f"✅ SUCCESS with {symbol}! Got {len(hist)} rows of real data")
                     data_source = f"Yahoo Finance ({symbol})"
                     break
                 else:
-                    print(f"{symbol} returned {len(hist) if hist is not None else 0} rows")
+                    print(f"{symbol} insufficient data: {len(hist) if hist is not None else 0} rows")
                     
             except Exception as symbol_error:
-                print(f"{symbol} failed: {symbol_error}")
+                print(f"{symbol} error: {symbol_error}")
                 continue
         
-        # If all symbols failed, create sample data
+        # Create sample data if yfinance failed
         if hist is None or hist.empty:
-            print("All S&P 500 symbols failed, creating realistic sample data")
+            print("Creating S&P 500 sample data...")
             
-            # Create 1 year of S&P 500 sample data
+            # 1 year of realistic S&P 500 data
             dates = pd.date_range(start='2024-08-22', end='2025-08-22', freq='D')
             
-            # S&P 500 realistic levels (around 5500)
-            base_price = 5500
+            # S&P 500 around 5600 level
+            base_price = 5600
             sample_data = []
             
             for i, date in enumerate(dates):
-                # Realistic S&P 500 movement
-                trend = i * 0.8  # Gradual upward trend
-                volatility = ((i % 35) - 17) * 25  # Market volatility
+                trend = i * 0.5  # Gradual upward trend
+                volatility = ((i % 30) - 15) * 15  # Daily volatility
                 
                 open_price = base_price + trend + volatility
-                high_price = open_price + ((i % 12) + 3) * 6
-                low_price = open_price - ((i % 12) + 3) * 6
-                close_price = open_price + ((i % 15) - 7) * 8
-                volume = 2800000000 + ((i % 60) * 80000000)  # Typical S&P 500 volume
+                high_price = open_price + ((i % 8) + 2) * 4
+                low_price = open_price - ((i % 8) + 2) * 4  
+                close_price = open_price + ((i % 10) - 5) * 5
+                volume = 3200000000 + ((i % 50) * 50000000)
                 
                 sample_data.append({
                     "Open": max(open_price, 100),
-                    "High": max(high_price, open_price + 5),
-                    "Low": max(low_price, open_price - 30),
+                    "High": max(high_price, open_price + 1),
+                    "Low": max(low_price, open_price - 15),
                     "Close": max(close_price, 100),
                     "Volume": volume
                 })
             
             hist = pd.DataFrame(sample_data, index=dates)
-            data_source = "Realistic S&P 500 Sample"
+            data_source = "Realistic S&P 500 Sample Data"
         
-        print(f"Final data: {len(hist)} rows from {data_source}")
+        print(f"Using data: {len(hist)} rows from {data_source}")
         
-        # Create clean chart
+        # Create simple chart
         fig = go.Figure()
         
         # Price line
@@ -167,9 +157,8 @@ def get_sp500_1y():
                 y=hist['Close'],
                 mode='lines',
                 name='S&P 500',
-                line=dict(color='#1f77b4', width=3),
-                fill='tonexty' if len(hist) > 100 else None,
-                fillcolor='rgba(31,119,180,0.1)'
+                line=dict(color='#ff6b35', width=3),
+                hovertemplate='Date: %{x}<br>Price: $%{y:,.2f}<extra></extra>'
             )
         )
         
@@ -180,31 +169,35 @@ def get_sp500_1y():
                 y=hist['Volume'],
                 name='Volume',
                 yaxis='y2',
-                opacity=0.4,
-                marker_color='rgba(255,165,0,0.7)'
+                opacity=0.3,
+                marker_color='rgba(99,110,250,0.6)',
+                hovertemplate='Date: %{x}<br>Volume: %{y:,}<extra></extra>'
             )
         )
         
         # Layout
         fig.update_layout(
-            title=f"S&P 500 Index - 1 Year<br><sub>Data Source: {data_source}</sub>",
-            xaxis=dict(title="Date", showgrid=True, gridcolor='rgba(128,128,128,0.2)'),
-            yaxis=dict(title="Price ($)", side="left", showgrid=True, gridcolor='rgba(128,128,128,0.2)'),
-            yaxis2=dict(title="Volume", side="right", overlaying="y", showgrid=False),
+            title=f"S&P 500 Index - 1 Year Chart<br><sub style='color:#888'>{data_source}</sub>",
+            xaxis_title="Date",
+            yaxis=dict(title="Price ($)", side="left"),
+            yaxis2=dict(title="Volume", side="right", overlaying="y"),
             template="plotly_dark",
             height=600,
             showlegend=True,
-            hovermode='x unified',
-            plot_bgcolor='rgba(17,17,17,0.9)'
+            hovermode='x unified'
         )
         
+        print("Chart created successfully!")
         return json.loads(fig.to_json())
         
     except Exception as e:
-        print(f"Final error: {e}")
+        print(f"Error: {e}")
         return JSONResponse(status_code=500, content={"error": str(e)})
 
 if __name__ == "__main__":
-    print("🚀 S&P 500 Widget Starting...")
+    print("🚀 Starting Simple S&P 500 Widget")
+    print("📊 Minimal yfinance parameters")
+    print("🔧 Maximum compatibility")
+    
     port = int(os.getenv("PORT", 8000))
     uvicorn.run(app, host="0.0.0.0", port=port)
