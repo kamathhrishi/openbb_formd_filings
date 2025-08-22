@@ -100,5 +100,14 @@
         "options": ["1mo", "3mo", "6mo", "1y", "2y", "5y"]
       }
     ]
+  },
+  "test_chart": {
+    "name": "Test Chart",
+    "description": "Test chart with sample data to verify Plotly integration",
+    "category": "Testing",
+    "type": "chart",
+    "endpoint": "test_chart",
+    "gridData": {"w": 800, "h": 400},
+    "source": "Sample Data"
   }
 }
