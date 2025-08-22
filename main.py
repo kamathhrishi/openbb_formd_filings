@@ -206,41 +206,60 @@ def get_widgets():
 @app.get("/apps.json")
 def get_apps():
     """Apps configuration file for the OpenBB Workspace"""
-    apps_config = {
-        "nasdaq_dashboard": {
+    apps_config = [
+        {
             "name": "NASDAQ Market Dashboard",
-            "description": "Complete NASDAQ market analysis with charts and data tables",
-            "version": "1.0.0",
-            "category": "Market Analysis",
-            "tabs": [
-                {
-                    "name": "Main Dashboard",
-                    "widgets": [
+            "img": "https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=250&h=200&fit=crop&crop=center",
+            "img_dark": "https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=250&h=200&fit=crop&crop=center",
+            "img_light": "https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=250&h=200&fit=crop&crop=center",
+            "description": "Complete NASDAQ market analysis with interactive charts and real-time data tables",
+            "allowCustomization": True,
+            "tabs": {
+                "main": {
+                    "id": "main",
+                    "name": "Market Overview",
+                    "layout": [
                         {
-                            "id": "hello_world",
-                            "gridData": {"x": 0, "y": 0, "w": 12, "h": 4}
+                            "i": "hello_world",
+                            "x": 0,
+                            "y": 0,
+                            "w": 20,
+                            "h": 4
                         },
                         {
-                            "id": "test_chart",
-                            "gridData": {"x": 0, "y": 4, "w": 6, "h": 4}
+                            "i": "test_chart",
+                            "x": 0,
+                            "y": 4,
+                            "w": 20,
+                            "h": 8
                         },
                         {
-                            "id": "nasdaq_summary", 
-                            "gridData": {"x": 6, "y": 4, "w": 6, "h": 4}
+                            "i": "nasdaq_summary", 
+                            "x": 20,
+                            "y": 4,
+                            "w": 20,
+                            "h": 8
                         },
                         {
-                            "id": "nasdaq_chart",
-                            "gridData": {"x": 0, "y": 8, "w": 12, "h": 6}
+                            "i": "nasdaq_chart",
+                            "x": 0,
+                            "y": 12,
+                            "w": 40,
+                            "h": 12
                         },
                         {
-                            "id": "stock_comparison",
-                            "gridData": {"x": 0, "y": 14, "w": 12, "h": 6}
+                            "i": "stock_comparison",
+                            "x": 0,
+                            "y": 24,
+                            "w": 40,
+                            "h": 12
                         }
                     ]
                 }
-            ]
+            },
+            "groups": []
         }
-    }
+    ]
     
     return JSONResponse(content=apps_config)
 
