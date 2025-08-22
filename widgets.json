@@ -12,10 +12,19 @@
         "paramName": "name",
         "value": "",
         "label": "Name",
-        "type": "text",
+        "type": "form",
         "description": "Enter your name"
       }
     ]
+  },
+  "test_chart": {
+    "name": "Test Chart",
+    "description": "Test chart with sample data to verify Plotly integration works",
+    "category": "Testing",
+    "type": "chart", 
+    "endpoint": "test_chart",
+    "gridData": {"w": 800, "h": 400},
+    "source": "Sample Data"
   },
   "nasdaq_chart": {
     "name": "NASDAQ Historical Chart",
@@ -30,17 +39,31 @@
         "paramName": "period",
         "value": "1y",
         "label": "Time Period",
-        "type": "select",
+        "type": "form",
         "description": "Select time period for historical data",
-        "options": ["1mo", "3mo", "6mo", "1y", "2y", "5y", "max"]
+        "options": [
+          {"label": "1 Month", "value": "1mo"},
+          {"label": "3 Months", "value": "3mo"},
+          {"label": "6 Months", "value": "6mo"},
+          {"label": "1 Year", "value": "1y"},
+          {"label": "2 Years", "value": "2y"},
+          {"label": "5 Years", "value": "5y"},
+          {"label": "Max", "value": "max"}
+        ]
       },
       {
         "paramName": "interval",
         "value": "1d",
         "label": "Data Interval",
-        "type": "select", 
+        "type": "form", 
         "description": "Select data interval",
-        "options": ["1d", "5d", "1wk", "1mo", "3mo"]
+        "options": [
+          {"label": "Daily", "value": "1d"},
+          {"label": "5 Days", "value": "5d"},
+          {"label": "Weekly", "value": "1wk"},
+          {"label": "Monthly", "value": "1mo"},
+          {"label": "3 Months", "value": "3mo"}
+        ]
       }
     ]
   },
@@ -88,26 +111,24 @@
         "paramName": "symbols",
         "value": "AAPL,GOOGL,MSFT",
         "label": "Stock Symbols",
-        "type": "text",
+        "type": "form",
         "description": "Enter stock symbols separated by commas (e.g., AAPL,GOOGL,MSFT)"
       },
       {
         "paramName": "period",
         "value": "1y",
         "label": "Time Period",
-        "type": "select",
+        "type": "form",
         "description": "Select time period for comparison",
-        "options": ["1mo", "3mo", "6mo", "1y", "2y", "5y"]
+        "options": [
+          {"label": "1 Month", "value": "1mo"},
+          {"label": "3 Months", "value": "3mo"},
+          {"label": "6 Months", "value": "6mo"},
+          {"label": "1 Year", "value": "1y"},
+          {"label": "2 Years", "value": "2y"},
+          {"label": "5 Years", "value": "5y"}
+        ]
       }
     ]
-  },
-  "test_chart": {
-    "name": "Test Chart",
-    "description": "Test chart with sample data to verify Plotly integration",
-    "category": "Testing",
-    "type": "chart",
-    "endpoint": "test_chart",
-    "gridData": {"w": 800, "h": 400},
-    "source": "Sample Data"
   }
 }
