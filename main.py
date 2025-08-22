@@ -175,11 +175,64 @@ def get_apps():
     """Apps configuration file for the OpenBB Workspace"""
     apps_config = {
         "nasdaq_dashboard": {
-            "name": "NASDAQ Dashboard",
-            "description": "Comprehensive NASDAQ market data dashboard",
+            "name": "NASDAQ Market Dashboard",
+            "description": "Complete NASDAQ market analysis with charts and data tables",
             "version": "1.0.0",
             "category": "Market Analysis",
-            "widgets": ["nasdaq_chart", "nasdaq_summary", "stock_comparison"]
+            "layout": [
+                {
+                    "i": "hello_world",
+                    "x": 0,
+                    "y": 0,
+                    "w": 12,
+                    "h": 4,
+                    "minW": 6,
+                    "minH": 3
+                },
+                {
+                    "i": "test_chart", 
+                    "x": 0,
+                    "y": 4,
+                    "w": 8,
+                    "h": 4,
+                    "minW": 6,
+                    "minH": 4
+                },
+                {
+                    "i": "nasdaq_summary",
+                    "x": 8,
+                    "y": 4,
+                    "w": 4,
+                    "h": 4,
+                    "minW": 4,
+                    "minH": 4
+                },
+                {
+                    "i": "nasdaq_chart",
+                    "x": 0,
+                    "y": 8,
+                    "w": 12,
+                    "h": 6,
+                    "minW": 8,
+                    "minH": 6
+                },
+                {
+                    "i": "stock_comparison",
+                    "x": 0,
+                    "y": 14,
+                    "w": 12,
+                    "h": 6,
+                    "minW": 8,
+                    "minH": 6
+                }
+            ],
+            "widgets": [
+                "hello_world",
+                "test_chart", 
+                "nasdaq_chart",
+                "nasdaq_summary",
+                "stock_comparison"
+            ]
         }
     }
     
