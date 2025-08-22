@@ -272,7 +272,8 @@ def get_nasdaq_chart(
             rows=2, cols=1,
             subplot_titles=(f'NASDAQ Data ({used_symbol})', 'Volume'),
             vertical_spacing=0.1,
-            row_heights=[0.7, 0.3]
+            row_heights=[0.7, 0.3],
+            specs=[[{"secondary_y": False}], [{"secondary_y": False}]]
         )
         
         # Add candlestick chart
@@ -308,10 +309,10 @@ def get_nasdaq_chart(
             showlegend=True
         )
         
-        # Update y-axes
-        fig.update_yaxis(title_text="Price ($)", row=1, col=1)
-        fig.update_yaxis(title_text="Volume", row=2, col=1)
-        fig.update_xaxis(title_text="Date", row=2, col=1)
+        # Update y-axes using correct subplot method
+        fig.update_yaxes(title_text="Price ($)", row=1, col=1)
+        fig.update_yaxes(title_text="Volume", row=2, col=1)
+        fig.update_xaxes(title_text="Date", row=2, col=1)
         
         return json.loads(fig.to_json())
         
