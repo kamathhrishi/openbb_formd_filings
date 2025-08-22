@@ -166,7 +166,8 @@ if __name__ == "__main__":
     print("ℹ️  Environment info available at /info")
     print("=" * 50)
 
-    port = int(os.getenv("PORT", 8888))
+    port = int(os.getenv("PORT", 8000))
+    print(f"🔧 Starting on host: 0.0.0.0, port: {port}")
     uvicorn.run(
         app,
         host="0.0.0.0",
