@@ -230,20 +230,47 @@ def get_nasdaq_chart(
 ):
     """Get NASDAQ Composite historical data as Plotly chart"""
     try:
-        # Download NASDAQ Composite data
-        nasdaq = yf.Ticker("^IXIC")
-        hist = nasdaq.history(period=period, interval=interval)
+        print(f"Fetching NASDAQ data for period: {period}, interval: {interval}")
         
-        if hist.empty:
-            return JSONResponse(
-                status_code=404,
-                content={"error": "No data found for the specified period"}
-            )
+        # Try different NASDAQ symbols if one fails
+        nasdaq_symbols = ["^IXIC", "NDAQ", "QQQ"]  # NASDAQ Composite, NASDAQ Inc, NASDAQ ETF
+        hist = None
+        used_symbol = None
+        
+        for symbol in nasdaq_symbols:
+            try:
+                print(f"Trying symbol: {symbol}")
+                ticker = yf.Ticker(symbol)
+                hist = ticker.history(period=period, interval=interval)
+                
+                if not hist.empty and len(hist) > 0:
+                    used_symbol = symbol
+                    print(f"Successfully fetched data for {symbol}: {len(hist)} rows")
+                    break
+                else:
+                    print(f"No data returned for {symbol}")
+            except Exception as symbol_error:
+                print(f"Error with symbol {symbol}: {symbol_error}")
+                continue
+        
+        if hist is None or hist.empty:
+            # If all symbols fail, create sample data
+            print("All symbols failed, creating sample data")
+            dates = pd.date_range(start='2024-01-01', end='2024-12-31', freq='D')
+            sample_data = {
+                'Open': [15000 + i*10 + (i%30)*50 for i in range(len(dates))],
+                'High': [15100 + i*10 + (i%30)*50 for i in range(len(dates))],
+                'Low': [14900 + i*10 + (i%30)*50 for i in range(len(dates))],
+                'Close': [15050 + i*10 + (i%30)*50 for i in range(len(dates))],
+                'Volume': [1000000 + (i%100)*10000 for i in range(len(dates))]
+            }
+            hist = pd.DataFrame(sample_data, index=dates)
+            used_symbol = "SAMPLE_NASDAQ"
         
         # Create subplot with secondary y-axis for volume
         fig = make_subplots(
             rows=2, cols=1,
-            subplot_titles=('NASDAQ Composite Price', 'Volume'),
+            subplot_titles=(f'NASDAQ Data ({used_symbol})', 'Volume'),
             vertical_spacing=0.1,
             row_heights=[0.7, 0.3]
         )
@@ -274,7 +301,7 @@ def get_nasdaq_chart(
         
         # Update layout
         fig.update_layout(
-            title=f"NASDAQ Composite - {period.upper()} Historical Data",
+            title=f"NASDAQ Data - {period.upper()} Period ({used_symbol})",
             xaxis_rangeslider_visible=False,
             template="plotly_dark",
             height=600,
@@ -289,6 +316,7 @@ def get_nasdaq_chart(
         return json.loads(fig.to_json())
         
     except Exception as e:
+        print(f"Error in nasdaq_chart: {e}")
         return JSONResponse(
             status_code=500,
             content={"error": f"Failed to fetch NASDAQ data: {str(e)}"}
@@ -299,57 +327,108 @@ def get_nasdaq_chart(
 def get_nasdaq_summary():
     """Get current NASDAQ market summary"""
     try:
-        nasdaq = yf.Ticker("^IXIC")
-        info = nasdaq.info
-        hist = nasdaq.history(period="2d")
+        print("Fetching NASDAQ summary data...")
         
-        if hist.empty:
-            return JSONResponse(
-                status_code=404,
-                content={"error": "No recent data available"}
-            )
+        # Try multiple symbols for better reliability
+        nasdaq_symbols = ["^IXIC", "QQQ", "NDAQ"]
+        summary_data = None
+        used_symbol = None
         
-        current_price = hist['Close'].iloc[-1]
-        prev_price = hist['Close'].iloc[-2] if len(hist) > 1 else current_price
-        change = current_price - prev_price
-        change_percent = (change / prev_price) * 100
+        for symbol in nasdaq_symbols:
+            try:
+                print(f"Trying summary for symbol: {symbol}")
+                ticker = yf.Ticker(symbol)
+                hist = ticker.history(period="5d")  # Get more days to ensure data
+                
+                if not hist.empty and len(hist) >= 1:
+                    used_symbol = symbol
+                    current_price = hist['Close'].iloc[-1]
+                    prev_price = hist['Close'].iloc[-2] if len(hist) > 1 else current_price
+                    change = current_price - prev_price
+                    change_percent = (change / prev_price) * 100 if prev_price != 0 else 0
+                    
+                    # Try to get additional info, but don't fail if it's not available
+                    try:
+                        info = ticker.info
+                        week_52_high = info.get('fiftyTwoWeekHigh', 'N/A')
+                        week_52_low = info.get('fiftyTwoWeekLow', 'N/A')
+                    except:
+                        week_52_high = 'N/A'
+                        week_52_low = 'N/A'
+                    
+                    summary_data = [
+                        {
+                            "metric": f"Current Price ({used_symbol})",
+                            "value": f"${current_price:,.2f}",
+                            "change": f"{change:+,.2f} ({change_percent:+.2f}%)"
+                        },
+                        {
+                            "metric": "Day's High",
+                            "value": f"${hist['High'].iloc[-1]:,.2f}",
+                            "change": ""
+                        },
+                        {
+                            "metric": "Day's Low", 
+                            "value": f"${hist['Low'].iloc[-1]:,.2f}",
+                            "change": ""
+                        },
+                        {
+                            "metric": "Volume",
+                            "value": f"{hist['Volume'].iloc[-1]:,}",
+                            "change": ""
+                        },
+                        {
+                            "metric": "52 Week High",
+                            "value": f"${week_52_high}" if week_52_high != 'N/A' else 'N/A',
+                            "change": ""
+                        },
+                        {
+                            "metric": "52 Week Low",
+                            "value": f"${week_52_low}" if week_52_low != 'N/A' else 'N/A',
+                            "change": ""
+                        }
+                    ]
+                    break
+                    
+            except Exception as symbol_error:
+                print(f"Error with symbol {symbol}: {symbol_error}")
+                continue
         
-        summary_data = [
-            {
-                "metric": "Current Price",
-                "value": f"${current_price:,.2f}",
-                "change": f"{change:+,.2f} ({change_percent:+.2f}%)"
-            },
-            {
-                "metric": "Day's High",
-                "value": f"${hist['High'].iloc[-1]:,.2f}",
-                "change": ""
-            },
-            {
-                "metric": "Day's Low", 
-                "value": f"${hist['Low'].iloc[-1]:,.2f}",
-                "change": ""
-            },
-            {
-                "metric": "Volume",
-                "value": f"{hist['Volume'].iloc[-1]:,}",
-                "change": ""
-            },
-            {
-                "metric": "52 Week High",
-                "value": f"${info.get('fiftyTwoWeekHigh', 'N/A')}",
-                "change": ""
-            },
-            {
-                "metric": "52 Week Low",
-                "value": f"${info.get('fiftyTwoWeekLow', 'N/A')}",
-                "change": ""
-            }
-        ]
+        if summary_data is None:
+            # Create sample data if all real data fails
+            print("All symbols failed, creating sample summary data")
+            summary_data = [
+                {
+                    "metric": "Sample NASDAQ Price",
+                    "value": "$15,234.56",
+                    "change": "+123.45 (+0.82%)"
+                },
+                {
+                    "metric": "Day's High",
+                    "value": "$15,456.78",
+                    "change": ""
+                },
+                {
+                    "metric": "Day's Low",
+                    "value": "$15,123.45",
+                    "change": ""
+                },
+                {
+                    "metric": "Volume",
+                    "value": "3,245,678,901",
+                    "change": ""
+                },
+                {
+                    "metric": "Status",
+                    "value": "Sample Data - Check yfinance connection",
+                    "change": ""
+                }
+            ]
         
         return summary_data
         
     except Exception as e:
+        print(f"Error in nasdaq_summary: {e}")
         return JSONResponse(
             status_code=500,
             content={"error": f"Failed to fetch NASDAQ summary: {str(e)}"}
@@ -363,30 +442,68 @@ def get_stock_comparison(
 ):
     """Compare multiple stocks performance"""
     try:
+        print(f"Fetching comparison data for symbols: {symbols}, period: {period}")
         symbol_list = [s.strip().upper() for s in symbols.split(",")]
         
         fig = go.Figure()
+        successful_symbols = []
         
         for symbol in symbol_list:
-            ticker = yf.Ticker(symbol)
-            hist = ticker.history(period=period)
+            try:
+                print(f"Fetching data for {symbol}")
+                ticker = yf.Ticker(symbol)
+                hist = ticker.history(period=period)
+                
+                if not hist.empty and len(hist) > 0:
+                    # Calculate percentage change from first day
+                    normalized_prices = (hist['Close'] / hist['Close'].iloc[0] - 1) * 100
+                    
+                    fig.add_trace(
+                        go.Scatter(
+                            x=hist.index,
+                            y=normalized_prices,
+                            mode='lines',
+                            name=symbol,
+                            line=dict(width=2)
+                        )
+                    )
+                    successful_symbols.append(symbol)
+                    print(f"Successfully added {symbol} to chart")
+                else:
+                    print(f"No data for {symbol}")
+                    
+            except Exception as symbol_error:
+                print(f"Error fetching {symbol}: {symbol_error}")
+                continue
+        
+        if not successful_symbols:
+            # Create sample comparison data if all symbols fail
+            print("All symbols failed, creating sample comparison data")
+            dates = pd.date_range(start='2024-01-01', end='2024-12-31', freq='D')
             
-            if not hist.empty:
-                # Calculate percentage change from first day
-                normalized_prices = (hist['Close'] / hist['Close'].iloc[0] - 1) * 100
+            sample_stocks = ['STOCK_A', 'STOCK_B', 'STOCK_C']
+            colors = ['#1f77b4', '#ff7f0e', '#2ca02c']
+            
+            for i, stock in enumerate(sample_stocks):
+                # Generate sample percentage returns
+                returns = [(j%30 - 15) + (j*0.1) + (i*5) for j in range(len(dates))]
                 
                 fig.add_trace(
                     go.Scatter(
-                        x=hist.index,
-                        y=normalized_prices,
+                        x=dates,
+                        y=returns,
                         mode='lines',
-                        name=symbol,
-                        line=dict(width=2)
+                        name=stock,
+                        line=dict(width=2, color=colors[i])
                     )
                 )
         
+        title = f"Stock Performance Comparison - {period.upper()}"
+        if not successful_symbols:
+            title += " (Sample Data - Check yfinance connection)"
+        
         fig.update_layout(
-            title=f"Stock Performance Comparison - {period.upper()}",
+            title=title,
             xaxis_title="Date",
             yaxis_title="Percentage Change (%)",
             template="plotly_dark",
@@ -397,9 +514,50 @@ def get_stock_comparison(
         return json.loads(fig.to_json())
         
     except Exception as e:
+        print(f"Error in stock_comparison: {e}")
         return JSONResponse(
             status_code=500,
             content={"error": f"Failed to fetch comparison data: {str(e)}"}
+        )
+
+# Test Chart endpoint (no external API dependency)
+@app.get("/test_chart")
+def get_test_chart():
+    """Get a test chart with sample data to verify Plotly integration"""
+    try:
+        # Generate sample data
+        dates = pd.date_range(start='2024-01-01', end='2024-12-31', freq='D')
+        sample_prices = [15000 + i*5 + (i%50)*20 for i in range(len(dates))]
+        sample_volume = [1000000 + (i%100)*50000 for i in range(len(dates))]
+        
+        fig = go.Figure()
+        
+        # Add price line
+        fig.add_trace(
+            go.Scatter(
+                x=dates,
+                y=sample_prices,
+                mode='lines',
+                name='Sample NASDAQ',
+                line=dict(color='#00ff41', width=2)
+            )
+        )
+        
+        fig.update_layout(
+            title="Test Chart - Sample NASDAQ Data",
+            xaxis_title="Date",
+            yaxis_title="Price ($)",
+            template="plotly_dark",
+            height=400
+        )
+        
+        return json.loads(fig.to_json())
+        
+    except Exception as e:
+        print(f"Error in test_chart: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={"error": f"Failed to create test chart: {str(e)}"}
         )
 
 # Additional endpoint for environment info
