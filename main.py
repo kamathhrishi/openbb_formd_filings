@@ -68,7 +68,7 @@ def get_widgets():
     widgets_config = {
         "hello_world": {
             "name": "Hello World",
-            "description": "A simple markdown widget that displays Hello World",
+            "description": "A simple markdown widget that displays Hello World with market info",
             "category": "Hello World",
             "type": "markdown",
             "endpoint": "hello_world",
@@ -79,14 +79,23 @@ def get_widgets():
                     "paramName": "name",
                     "value": "",
                     "label": "Name",
-                    "type": "text",
+                    "type": "form",
                     "description": "Enter your name"
                 }
             ]
         },
+        "test_chart": {
+            "name": "Test Chart",
+            "description": "Test chart with sample data to verify Plotly integration works",
+            "category": "Testing",
+            "type": "chart", 
+            "endpoint": "test_chart",
+            "gridData": {"w": 800, "h": 400},
+            "source": "Sample Data"
+        },
         "nasdaq_chart": {
             "name": "NASDAQ Historical Chart",
-            "description": "Interactive chart showing NASDAQ Composite historical data",
+            "description": "Interactive candlestick chart showing NASDAQ Composite historical data with volume",
             "category": "Market Data",
             "type": "chart",
             "endpoint": "nasdaq_chart",
@@ -97,23 +106,37 @@ def get_widgets():
                     "paramName": "period",
                     "value": "1y",
                     "label": "Time Period",
-                    "type": "select",
+                    "type": "form",
                     "description": "Select time period for historical data",
-                    "options": ["1mo", "3mo", "6mo", "1y", "2y", "5y", "max"]
+                    "options": [
+                        {"label": "1 Month", "value": "1mo"},
+                        {"label": "3 Months", "value": "3mo"},
+                        {"label": "6 Months", "value": "6mo"},
+                        {"label": "1 Year", "value": "1y"},
+                        {"label": "2 Years", "value": "2y"},
+                        {"label": "5 Years", "value": "5y"},
+                        {"label": "Max", "value": "max"}
+                    ]
                 },
                 {
                     "paramName": "interval",
                     "value": "1d",
                     "label": "Data Interval",
-                    "type": "select", 
+                    "type": "form", 
                     "description": "Select data interval",
-                    "options": ["1d", "5d", "1wk", "1mo", "3mo"]
+                    "options": [
+                        {"label": "Daily", "value": "1d"},
+                        {"label": "5 Days", "value": "5d"},
+                        {"label": "Weekly", "value": "1wk"},
+                        {"label": "Monthly", "value": "1mo"},
+                        {"label": "3 Months", "value": "3mo"}
+                    ]
                 }
             ]
         },
         "nasdaq_summary": {
             "name": "NASDAQ Market Summary",
-            "description": "Current NASDAQ market summary with key metrics",
+            "description": "Current NASDAQ market summary with key metrics and price changes",
             "category": "Market Data",
             "type": "table",
             "endpoint": "nasdaq_summary",
@@ -125,23 +148,26 @@ def get_widgets():
                     "columnsDefs": [
                         {
                             "headerName": "Metric",
-                            "field": "metric"
+                            "field": "metric",
+                            "width": 200
                         },
                         {
                             "headerName": "Value",
-                            "field": "value"
+                            "field": "value",
+                            "width": 150
                         },
                         {
                             "headerName": "Change",
-                            "field": "change"
+                            "field": "change",
+                            "width": 200
                         }
                     ]
                 }
             }
         },
         "stock_comparison": {
-            "name": "Stock Comparison Chart",
-            "description": "Compare multiple stocks performance over time",
+            "name": "Stock Performance Comparison",
+            "description": "Compare multiple stocks performance over time (normalized percentage returns)",
             "category": "Market Data",
             "type": "chart",
             "endpoint": "stock_comparison",
@@ -152,16 +178,23 @@ def get_widgets():
                     "paramName": "symbols",
                     "value": "AAPL,GOOGL,MSFT",
                     "label": "Stock Symbols",
-                    "type": "text",
+                    "type": "form",
                     "description": "Enter stock symbols separated by commas (e.g., AAPL,GOOGL,MSFT)"
                 },
                 {
                     "paramName": "period",
                     "value": "1y",
                     "label": "Time Period",
-                    "type": "select",
+                    "type": "form",
                     "description": "Select time period for comparison",
-                    "options": ["1mo", "3mo", "6mo", "1y", "2y", "5y"]
+                    "options": [
+                        {"label": "1 Month", "value": "1mo"},
+                        {"label": "3 Months", "value": "3mo"},
+                        {"label": "6 Months", "value": "6mo"},
+                        {"label": "1 Year", "value": "1y"},
+                        {"label": "2 Years", "value": "2y"},
+                        {"label": "5 Years", "value": "5y"}
+                    ]
                 }
             ]
         }
@@ -247,6 +280,46 @@ Add different parameters to explore the data endpoints!
 
 Add `?name=YourName` to personalize this greeting!
 """
+
+# Test Chart endpoint (no external API dependency)
+@app.get("/test_chart")
+def get_test_chart():
+    """Get a test chart with sample data to verify Plotly integration"""
+    try:
+        # Generate sample data
+        dates = pd.date_range(start='2024-01-01', end='2024-12-31', freq='D')
+        sample_prices = [15000 + i*5 + (i%50)*20 for i in range(len(dates))]
+        sample_volume = [1000000 + (i%100)*50000 for i in range(len(dates))]
+        
+        fig = go.Figure()
+        
+        # Add price line
+        fig.add_trace(
+            go.Scatter(
+                x=dates,
+                y=sample_prices,
+                mode='lines',
+                name='Sample NASDAQ',
+                line=dict(color='#00ff41', width=2)
+            )
+        )
+        
+        fig.update_layout(
+            title="Test Chart - Sample NASDAQ Data",
+            xaxis_title="Date",
+            yaxis_title="Price ($)",
+            template="plotly_dark",
+            height=400
+        )
+        
+        return json.loads(fig.to_json())
+        
+    except Exception as e:
+        print(f"Error in test_chart: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={"error": f"Failed to create test chart: {str(e)}"}
+        )
 
 # NASDAQ Chart endpoint
 @app.get("/nasdaq_chart")
@@ -547,46 +620,6 @@ def get_stock_comparison(
             content={"error": f"Failed to fetch comparison data: {str(e)}"}
         )
 
-# Test Chart endpoint (no external API dependency)
-@app.get("/test_chart")
-def get_test_chart():
-    """Get a test chart with sample data to verify Plotly integration"""
-    try:
-        # Generate sample data
-        dates = pd.date_range(start='2024-01-01', end='2024-12-31', freq='D')
-        sample_prices = [15000 + i*5 + (i%50)*20 for i in range(len(dates))]
-        sample_volume = [1000000 + (i%100)*50000 for i in range(len(dates))]
-        
-        fig = go.Figure()
-        
-        # Add price line
-        fig.add_trace(
-            go.Scatter(
-                x=dates,
-                y=sample_prices,
-                mode='lines',
-                name='Sample NASDAQ',
-                line=dict(color='#00ff41', width=2)
-            )
-        )
-        
-        fig.update_layout(
-            title="Test Chart - Sample NASDAQ Data",
-            xaxis_title="Date",
-            yaxis_title="Price ($)",
-            template="plotly_dark",
-            height=400
-        )
-        
-        return json.loads(fig.to_json())
-        
-    except Exception as e:
-        print(f"Error in test_chart: {e}")
-        return JSONResponse(
-            status_code=500,
-            content={"error": f"Failed to create test chart: {str(e)}"}
-        )
-
 # Additional endpoint for environment info
 @app.get("/info")
 def get_info():
@@ -605,6 +638,7 @@ def get_info():
             "/widgets.json",
             "/apps.json", 
             "/hello_world",
+            "/test_chart",
             "/nasdaq_chart",
             "/nasdaq_summary",
             "/stock_comparison",
