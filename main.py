@@ -412,16 +412,14 @@ def get_security_types():
             marker_colors=colors[:len(final_data)],
             textinfo='label+percent',
             textposition='auto',
-            hovertemplate='<b>%{label}</b><br>Filings: %{value:,}<br>Percentage: %{percent}<extra></extra>',
-            # Add data labels inside slices like HTML dashboard
-            textfont=dict(size=12, family="Inter", color="white")
+            hovertemplate='<b>%{label}</b><br>Filings: %{value:,}<br>Percentage: %{percent}<extra></extra>'
         )])
         
         fig.update_layout(
             title=dict(
                 text=f"Security Type Distribution<br><sub style='color:#666'>{chart_title}</sub>",
                 x=0.5,
-                font=dict(size=16, family="Inter", color="#333")
+                font=dict(size=16)
             ),
             height=400,
             showlegend=True,
@@ -429,12 +427,8 @@ def get_security_types():
                 orientation="v", 
                 yanchor="middle", 
                 y=0.5,
-                font=dict(family="Inter", size=12)
-            ),
-            # Simplified background styling
-            plot_bgcolor='white',
-            paper_bgcolor='white',
-            font=dict(family="Inter")
+                font=dict(size=12)
+            )
         )
         
         print("✅ Chart created successfully")
@@ -457,9 +451,7 @@ def get_security_types():
         )])
         fallback_fig.update_layout(
             title="Security Type Distribution (Fallback)",
-            height=400,
-            plot_bgcolor='white',
-            paper_bgcolor='white'
+            height=400
         )
         print("✅ Fallback chart created successfully")
         return json.loads(fallback_fig.to_json())
@@ -483,6 +475,9 @@ def get_top_industries():
         else:
             distribution = data["distribution"][:10]  # Top 10
         
+        # Sort by value (number of filings) from highest to lowest
+        distribution = sorted(distribution, key=lambda x: x["value"], reverse=True)
+        
         # Create horizontal bar chart
         fig = go.Figure(data=[go.Bar(
             x=[item["value"] for item in distribution],
@@ -498,9 +493,9 @@ def get_top_industries():
             title="Top 10 Industries<br><sub>Real Form D data - most active sectors</sub>",
             xaxis_title="Number of Filings",
             height=400,
-            margin=dict(l=120, r=20, t=80, b=50),
+            margin=dict(l=150, r=50, t=80, b=50),
             xaxis=dict(
-                range=[0, max([item["value"] for item in distribution]) * 1.05]
+                range=[0, max([item["value"] for item in distribution]) * 1.1]
             )
         )
         
@@ -554,9 +549,9 @@ def get_monthly_activity():
             yaxis_title="Number of Filings",
             height=500, 
             hovermode='x unified',
-            margin=dict(l=60, r=20, t=80, b=60),
+            margin=dict(l=80, r=50, t=80, b=80),
             yaxis=dict(
-                range=[0, max(max(equity_data), max(debt_data), max(fund_data)) * 1.05]
+                range=[0, max(max(equity_data), max(debt_data), max(fund_data)) * 1.1]
             )
         )
         
@@ -604,9 +599,9 @@ def get_top_fundraisers():
             title="Top 20 Fundraisers<br><sub>Real Form D data - largest offering amounts</sub>",
             xaxis_title="Offering Amount ($)",
             height=600,
-            margin=dict(l=180, r=20, t=80, b=60),
+            margin=dict(l=200, r=50, t=80, b=80),
             xaxis=dict(
-                range=[0, max([item["amount"] for item in fundraisers]) * 1.05]
+                range=[0, max([item["amount"] for item in fundraisers]) * 1.1]
             )
         )
         
@@ -655,7 +650,7 @@ def get_location_distribution():
                 lakecolor='rgb(255, 255, 255)',
             ),
             height=600,
-            margin=dict(l=20, r=20, t=80, b=20)
+            margin=dict(l=50, r=50, t=80, b=50)
         )
         
         return json.loads(fig.to_json())
