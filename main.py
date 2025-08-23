@@ -479,6 +479,9 @@ def get_top_industries():
         else:
             distribution = data["distribution"][:10]  # Top 10
         
+        # Sort by value (number of filings) from highest to lowest
+        distribution = sorted(distribution, key=lambda x: x["value"], reverse=True)
+        
         # Create horizontal bar chart
         fig = go.Figure(data=[go.Bar(
             x=[item["value"] for item in distribution],
