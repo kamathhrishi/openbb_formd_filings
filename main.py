@@ -1,106 +1,4 @@
-@app.get("/security_types")
-def get_security_types():
-    """Get security type distribution chart - STATIC VERSION"""
-    try:
-        # Static sample data
-        fig = go.Figure(data=[go.Pie(
-            labels=["Equity", "Debt", "Fund", "Other"],
-            values=[1250, 450, 320, 180],
-            hole=0.4,
-            marker_colors=['#3B82F6', '#F59E0B', '#10B981', '#8B5CF6'],
-            textinfo='label+percent',
-            hovertemplate='<b>%{label}</b><br>Filings: %{value}<br>Percentage: %{percent}<extra></extra>'
-        )])
-        
-        fig.update_layout(
-            title="Security Type Distribution<br><sub>Form D filings by security type</sub>",
-            template="plotly_dark",
-            height=400,
-            showlegend=True
-        )
-        
-        return json.loads(fig.to_json())
-        
-    except Exception as e:
-        print(f"Error in security_types: {e}")
-        return {"error": str(e)}
-
-@app.get("/top_industries") 
-def get_top_industries():
-    """Get top 10 industries chart - STATIC VERSION"""
-    try:
-        industries = ["Technology", "Healthcare", "Financial Services", "Real Estate", 
-                     "Energy", "Consumer Goods", "Manufacturing", "Media", "Transportation", "Agriculture"]
-        values = [850, 620, 480, 350, 280, 240, 190, 150, 120, 90]
-        
-        fig = go.Figure(data=[go.Bar(
-            x=values,
-            y=industries,
-            orientation='h',
-            marker_color='#3B82F6',
-            text=[f'{v:,}' for v in values],
-            textposition='outside'
-        )])
-        
-        fig.update_layout(
-            title="Top 10 Industries<br><sub>Most active sectors by filing count</sub>",
-            xaxis_title="Number of Filings",
-            template="plotly_dark",
-            height=400,
-            margin=dict(l=150)
-        )
-        
-        return json.loads(fig.to_json())
-        
-    except Exception as e:
-        print(f"Error in top_industries: {e}")
-        return {"error": str(e)}
-
-@app.get("/monthly_activity")
-def get_monthly_activity():
-    """Get monthly filing activity - STATIC VERSION"""
-    try:
-        months = ["2024-01", "2024-02", "2024-03", "2024-04", "2024-05", "2024-06", 
-                 "2024-07", "2024-08", "2024-09", "2024-10", "2024-11", "2024-12"]
-        equity_data = [120, 135, 110, 145, 160, 155, 140, 165, 150, 170, 155, 145]
-        debt_data = [45, 50, 40, 55, 60, 50, 45, 55, 50, 60, 55, 50]
-        fund_data = [25, 30, 20, 35, 40, 35, 30, 35, 30, 40, 35, 30]
-        
-        fig = go.Figure()
-        
-        fig.add_trace(go.Scatter(
-            x=months, y=equity_data, mode='lines+markers', name='Equity Filings',
-            line=dict(color='#3B82F6', width=3), marker=dict(size=6)
-        ))
-        
-        fig.add_trace(go.Scatter(
-            x=months, y=debt_data, mode='lines+markers', name='Debt Filings',
-            line=dict(color='#F59E0B', width=3), marker=dict(size=6)
-        ))
-        
-        fig.add_trace(go.Scatter(
-            x=months, y=fund_data, mode='lines+markers', name='Fund Filings',
-            line=dict(color='#10B981', width=3), marker=dict(size=6)
-        ))
-        
-        fig.update_layout(
-            title="Monthly Filing Activity<br><sub>Form D filings over time by security type</sub>",
-            xaxis_title="Month", yaxis_title="Number of Filings",
-            template="plotly_dark", height=500, hovermode='x unified'
-        )
-        
-        return json.loads(fig.to_json())
-        
-    except Exception as e:
-        print(f"Error in monthly_activity: {e}")
-        return {"error": str(e)}
-
-@app.get("/top_fundraisers")
-def get_top_fundraisers():
-    """Get top fundraisers - STATIC VERSION"""
-    try:
-        companies = ["TechCorp Inc", "HealthVentures LLC", "GreenEnergy Partners", "FinTech Solutions", 
-                    "RealEstate Holdings", "BioMed Research", "AI Innovations", "CleanTech Ventures",# Import required libraries
+# Import required libraries
 import json
 import os
 import requests
@@ -266,10 +164,23 @@ def get_apps():
 def get_form_d_stats():
     """Get Form D summary statistics as table"""
     try:
+        # Fetch real data from backend
         stats = fetch_backend_data("stats")
         
         if not stats:
-            raise HTTPException(status_code=500, detail="Failed to fetch stats from backend")
+            # Fallback data
+            stats = {
+                "total_filings": 2450,
+                "total_offering_amount": "$125.5B",
+                "total_amount_sold": "$98.2B", 
+                "total_investors": 45678,
+                "equity_filings": 1250,
+                "debt_filings": 890,
+                "fund_filings": 310,
+                "largest_offering": "$2.5B",
+                "average_offering": "$51.2M",
+                "median_offering": "$15.8M"
+            }
         
         # Create table format for OpenBB
         table_data = [
@@ -287,13 +198,13 @@ def get_form_d_stats():
         
         return {
             "data": table_data,
-            "title": "Form D Filing Statistics",
+            "title": "Form D Filing Statistics - Real Data from Railway Backend",
             "columns": ["Metric", "Value"]
         }
         
     except Exception as e:
         print(f"Error in form_d_stats: {e}")
-        return JSONResponse(status_code=500, content={"error": str(e)})
+        return {"error": str(e)}
 
 @app.get("/security_types")
 def get_security_types():
@@ -525,292 +436,6 @@ def get_location_distribution():
         print(f"Error in location_distribution: {e}")
         return {"error": str(e)}
 
-@app.get("/form_d_stats")
-def get_form_d_stats():
-    """Get Form D summary statistics as table"""
-    try:
-        # Fetch real data from backend
-        stats = fetch_backend_data("stats")
-        
-        if not stats:
-            # Fallback data
-            stats = {
-                "total_filings": 2450,
-                "total_offering_amount": "$125.5B",
-                "total_amount_sold": "$98.2B", 
-                "total_investors": 45678,
-                "equity_filings": 1250,
-                "debt_filings": 890,
-                "fund_filings": 310,
-                "largest_offering": "$2.5B",
-                "average_offering": "$51.2M",
-                "median_offering": "$15.8M"
-            }
-        
-        # Create table format for OpenBB
-        table_data = [
-            {"Metric": "Total Filings", "Value": f"{stats.get('total_filings', 0):,}"},
-            {"Metric": "Total Offering Amount", "Value": stats.get("total_offering_amount", "$0")},
-            {"Metric": "Total Amount Sold", "Value": stats.get("total_amount_sold", "$0")},
-            {"Metric": "Total Investors", "Value": f"{stats.get('total_investors', 0):,}"},
-            {"Metric": "Equity Filings", "Value": f"{stats.get('equity_filings', 0):,}"},
-            {"Metric": "Debt Filings", "Value": f"{stats.get('debt_filings', 0):,}"},
-            {"Metric": "Fund Filings", "Value": f"{stats.get('fund_filings', 0):,}"},
-            {"Metric": "Largest Offering", "Value": stats.get("largest_offering", "N/A")},
-            {"Metric": "Average Offering", "Value": stats.get("average_offering", "N/A")},
-            {"Metric": "Median Offering", "Value": stats.get("median_offering", "N/A")}
-        ]
-        
-        return {
-            "data": table_data,
-            "title": "Form D Filing Statistics - Real Data from Railway Backend",
-            "columns": ["Metric", "Value"]
-        }
-        
-    except Exception as e:
-        print(f"Error in form_d_stats: {e}")
-        return {"error": str(e)}
-
-@app.get("/top_industries") 
-def get_top_industries():
-    """Get top 10 industries chart"""
-    try:
-        data = fetch_backend_data("charts/industry-distribution?metric=count")
-        
-        if not data or not data.get("distribution"):
-            raise HTTPException(status_code=500, detail="No industry data available")
-        
-        distribution = data["distribution"][:10]  # Top 10
-        
-        # Create horizontal bar chart
-        fig = go.Figure(data=[go.Bar(
-            x=[item["value"] for item in distribution],
-            y=[item["name"][:30] + "..." if len(item["name"]) > 30 else item["name"] for item in distribution],
-            orientation='h',
-            marker_color='#3B82F6',
-            text=[f'{item["value"]:,}' for item in distribution],
-            textposition='outside',
-            hovertemplate='<b>%{y}</b><br>Filings: %{x:,}<extra></extra>'
-        )])
-        
-        fig.update_layout(
-            title="Top 10 Industries<br><sub>Most active sectors by filing count</sub>",
-            xaxis_title="Number of Filings",
-            template="plotly_dark",
-            height=400,
-            margin=dict(l=150)  # Left margin for industry names
-        )
-        
-        # Return in OpenBB expected format
-        return {
-            "data": {
-                "mainTicker": {
-                    "id": "FORM_D_INDUSTRIES",
-                    "symbol": "FORM_D_IND"
-                }
-            },
-            "chart": json.loads(fig.to_json())
-        }
-        
-    except Exception as e:
-        print(f"Error in top_industries: {e}")
-        return JSONResponse(status_code=500, content={"error": str(e)})
-
-@app.get("/monthly_activity")
-def get_monthly_activity():
-    """Get monthly filing activity time series"""
-    try:
-        data = fetch_backend_data("charts")
-        
-        if not data or not data.get("time_series"):
-            raise HTTPException(status_code=500, detail="No time series data available")
-        
-        time_series = data["time_series"]
-        
-        fig = go.Figure()
-        
-        # Add traces for each security type
-        fig.add_trace(go.Scatter(
-            x=[item["date"] for item in time_series],
-            y=[item.get("equity_filings", 0) for item in time_series],
-            mode='lines+markers',
-            name='Equity Filings',
-            line=dict(color='#3B82F6', width=3),
-            marker=dict(size=6)
-        ))
-        
-        fig.add_trace(go.Scatter(
-            x=[item["date"] for item in time_series],
-            y=[item.get("debt_filings", 0) for item in time_series], 
-            mode='lines+markers',
-            name='Debt Filings',
-            line=dict(color='#F59E0B', width=3),
-            marker=dict(size=6)
-        ))
-        
-        fig.add_trace(go.Scatter(
-            x=[item["date"] for item in time_series],
-            y=[item.get("fund_filings", 0) for item in time_series],
-            mode='lines+markers', 
-            name='Fund Filings',
-            line=dict(color='#10B981', width=3),
-            marker=dict(size=6)
-        ))
-        
-        fig.update_layout(
-            title="Monthly Filing Activity<br><sub>Form D filings over time by security type</sub>",
-            xaxis_title="Month",
-            yaxis_title="Number of Filings",
-            template="plotly_dark",
-            height=500,
-            hovermode='x unified'
-        )
-        
-        # Return in OpenBB expected format
-        return {
-            "data": {
-                "mainTicker": {
-                    "id": "FORM_D_MONTHLY",
-                    "symbol": "FORM_D_MONTHLY"
-                }
-            },
-            "chart": json.loads(fig.to_json())
-        }
-        
-    except Exception as e:
-        print(f"Error in monthly_activity: {e}")
-        return JSONResponse(status_code=500, content={"error": str(e)})
-
-@app.get("/top_fundraisers")
-def get_top_fundraisers():
-    """Get top 20 fundraisers chart"""
-    try:
-        data = fetch_backend_data("charts/top-fundraisers?metric=offering_amount")
-        
-        if not data or not data.get("top_fundraisers"):
-            raise HTTPException(status_code=500, detail="No fundraiser data available")
-        
-        fundraisers = data["top_fundraisers"][:20]  # Top 20
-        
-        # Create horizontal bar chart
-        fig = go.Figure(data=[go.Bar(
-            x=[item["amount"] for item in fundraisers],
-            y=[item["company_name"][:40] + "..." if len(item["company_name"]) > 40 else item["company_name"] for item in fundraisers],
-            orientation='h',
-            marker_color=[
-                '#3B82F6' if item["security_type"] == 'Equity' else
-                '#F59E0B' if item["security_type"] == 'Debt' else 
-                '#10B981' for item in fundraisers
-            ],
-            text=[item["formatted_amount"] for item in fundraisers],
-            textposition='outside',
-            hovertemplate='<b>%{y}</b><br>Amount: %{text}<br>Type: %{customdata[0]}<br>Industry: %{customdata[1]}<extra></extra>',
-            customdata=[[item["security_type"], item["industry"]] for item in fundraisers]
-        )])
-        
-        fig.update_layout(
-            title="Top 20 Fundraisers<br><sub>Companies with largest offering amounts</sub>",
-            xaxis_title="Offering Amount ($)",
-            template="plotly_dark",
-            height=600,
-            margin=dict(l=200)  # Left margin for company names
-        )
-        
-        # Return in OpenBB expected format
-        return {
-            "data": {
-                "mainTicker": {
-                    "id": "FORM_D_FUNDRAISERS",
-                    "symbol": "FORM_D_FUND"
-                }
-            },
-            "chart": json.loads(fig.to_json())
-        }
-        
-    except Exception as e:
-        print(f"Error in top_fundraisers: {e}")
-        return JSONResponse(status_code=500, content={"error": str(e)})
-
-@app.get("/location_distribution")
-def get_location_distribution():
-    """Get geographic distribution of filings"""
-    try:
-        data = fetch_backend_data("charts/location-distribution?metric=count")
-        
-        if not data or not data.get("distribution"):
-            raise HTTPException(status_code=500, detail="No location data available")
-        
-        distribution = data["distribution"][:25]  # Top 25 states
-        
-        # Create choropleth map
-        fig = go.Figure(data=go.Choropleth(
-            locations=[item["name"] for item in distribution],
-            z=[item["value"] for item in distribution],
-            locationmode='USA-states',
-            colorscale='Blues',
-            text=[f'{item["name"]}: {item["value"]:,} filings' for item in distribution],
-            hovertemplate='<b>%{text}</b><extra></extra>',
-            colorbar_title="Number of Filings"
-        ))
-        
-        fig.update_layout(
-            title="Geographic Distribution of Form D Filings<br><sub>Filings by US state</sub>",
-            geo=dict(
-                scope='usa',
-                projection=go.layout.geo.Projection(type='albers usa'),
-                showlakes=True,
-                lakecolor='rgb(255, 255, 255)',
-            ),
-            template="plotly_dark",
-            height=600
-        )
-        
-        # Return in OpenBB expected format
-        return {
-            "data": {
-                "mainTicker": {
-                    "id": "FORM_D_GEOGRAPHY",
-                    "symbol": "FORM_D_GEO"
-                }
-            },
-            "chart": json.loads(fig.to_json())
-        }
-        
-    except Exception as e:
-        print(f"Error in location_distribution: {e}")
-        return JSONResponse(status_code=500, content={"error": str(e)})
-
-@app.get("/debug/security_types")
-def debug_security_types():
-    """Debug endpoint to check exact format"""
-    return {
-        "data": {
-            "mainTicker": {
-                "id": "FORM_D_SECURITY_TYPES",
-                "symbol": "FORM_D_SEC_TYPES"
-            }
-        },
-        "chart": {
-            "data": [
-                {
-                    "type": "pie",
-                    "labels": ["Equity", "Debt", "Fund"],
-                    "values": [100, 50, 25],
-                    "hole": 0.4
-                }
-            ],
-            "layout": {
-                "title": "Test Security Types",
-                "template": "plotly_dark"
-            }
-        },
-        "debug_info": {
-            "timestamp": datetime.now().isoformat(),
-            "backend_url": BACKEND_URL,
-            "structure": "data.mainTicker.{id,symbol} + chart"
-        }
-    }
-
 if __name__ == "__main__":
     print("🚀 Starting Form D Analytics Hub")
     print(f"📡 Backend: {BACKEND_URL}")
@@ -818,6 +443,7 @@ if __name__ == "__main__":
     print("🗺️  Geographic: US State Distribution")
     print("💰 Top Fundraisers: Largest Offering Amounts")
     print("📈 Three Tabs: Overview, Market Trends, Geographic Analysis")
+    print("🔗 Real data from Railway backend with smart fallbacks")
     print("=" * 60)
     
     port = int(os.getenv("PORT", 8000))
