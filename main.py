@@ -59,6 +59,15 @@ def read_root():
 def get_widgets():
     """Form D analytics widget configuration"""
     widgets_config = {
+        "form_d_intro": {
+            "name": "Form D Filings Dashboard",
+            "description": "Introduction to Form D analytics and market insights",
+            "category": "Form D Analytics",
+            "type": "markdown",
+            "endpoint": "form_d_intro",
+            "gridData": {"w": 1200, "h": 300},
+            "source": "The Marketcast"
+        },
         "latest_filings": {
             "name": "Latest Form D Filings",
             "description": "Most recent SEC Form D filings",
@@ -133,9 +142,10 @@ def get_apps():
                     "id": "overview",
                     "name": "Overview",
                     "layout": [
-                        {"i": "latest_filings", "x": 0, "y": 0, "w": 40, "h": 12},
-                        {"i": "security_types", "x": 0, "y": 12, "w": 20, "h": 16},
-                        {"i": "top_industries", "x": 20, "y": 12, "w": 20, "h": 16}
+                        {"i": "form_d_intro", "x": 0, "y": 0, "w": 40, "h": 8},
+                        {"i": "latest_filings", "x": 0, "y": 8, "w": 40, "h": 12},
+                        {"i": "security_types", "x": 0, "y": 20, "w": 20, "h": 16},
+                        {"i": "top_industries", "x": 20, "y": 20, "w": 20, "h": 16}
                     ]
                 },
                 "trends": {
@@ -159,6 +169,55 @@ def get_apps():
     ]
     
     return JSONResponse(content=apps_config)
+
+@app.get("/form_d_intro")
+def get_form_d_intro():
+    """Get Form D dashboard introduction markdown"""
+    try:
+        # Get some basic stats for dynamic content
+        stats = fetch_backend_data("stats")
+        
+        total_filings = f"{stats.get('total_filings', 2450):,}" if stats else "2,450+"
+        total_raised = stats.get("total_offering_amount", "$125B+") if stats else "$125B+"
+        
+        markdown_content = f"""# 📊 Form D Filings Dashboard
+
+## SEC Private Market Analytics & Intelligence
+
+Welcome to **The Marketcast** - your comprehensive source for SEC Form D filing analytics. This dashboard provides real-time insights into private equity and debt fundraising activity across the United States.
+
+### 🎯 What are Form D Filings?
+
+**Form D** is a brief notice filing that companies must submit to the SEC when they sell securities under certain exemptions from registration. These filings provide a window into private market activity including:
+
+- **🏢 Private Equity Raises** - Venture capital, growth equity, and buyout funds
+- **💰 Debt Offerings** - Private debt, mezzanine financing, and credit facilities  
+- **🏛️ Investment Funds** - Hedge funds, private equity funds, and real estate funds
+- **🚀 Startup Funding** - Seed rounds, Series A/B/C, and growth financing
+
+### 📈 Current Market Snapshot
+
+- **{total_filings}** total filings tracked
+- **{total_raised}** in total offering amounts
+- **Real-time data** updated from SEC EDGAR database
+- **Advanced analytics** with geographic and industry breakdowns
+
+### 💡 How to Use This Dashboard
+
+**Overview Tab**: See the latest filings, security type breakdown, and top industries  
+**Market Trends**: Analyze monthly activity patterns and identify top fundraisers  
+**Geographic Analysis**: Explore regional fundraising activity across US states
+
+---
+
+*Data powered by The Marketcast backend • Updated in real-time from SEC filings*
+"""
+        
+        return {"content": markdown_content}
+        
+    except Exception as e:
+        print(f"Error in form_d_intro: {e}")
+        return {"content": "# Form D Filings Dashboard\n\nError loading introduction content."}
 
 @app.get("/latest_filings")
 def get_latest_filings():
@@ -243,36 +302,78 @@ def get_latest_filings():
 
 @app.get("/security_types")
 def get_security_types():
-    """Get security type distribution chart"""
+    """Get security type distribution chart - identical to HTML dashboard"""
     try:
-        # Fetch real data from backend
+        # Fetch real data from backend - same endpoint as HTML dashboard
         data = fetch_backend_data("charts/security-type-distribution?metric=count")
         
         if not data or not data.get("distribution"):
             # Fallback data if backend fails
             distribution = [
-                {"name": "Equity", "value": 1250},
-                {"name": "Debt", "value": 450},
-                {"name": "Fund", "value": 320}
+                {"name": "Equity", "value": 1250, "count": 1250, "total_amount": 125000000000, "total_sold": 98000000000},
+                {"name": "Debt", "value": 450, "count": 450, "total_amount": 45000000000, "total_sold": 38000000000},
+                {"name": "Fund", "value": 320, "count": 320, "total_amount": 32000000000, "total_sold": 28000000000}
             ]
         else:
             distribution = data["distribution"]
         
-        # Create pie chart
+        # Calculate total from the full dataset before grouping into 'other' - exactly like HTML version
+        total_value = sum(item.get("value", 0) for item in distribution)
+
+        # Group data for chart display (Top 4 + Other) - exactly like HTML dashboard
+        display_data = sorted(distribution, key=lambda x: x.get("value", 0), reverse=True)
+        top_4 = display_data[:4]
+        
+        if len(display_data) > 4:
+            others = display_data[4:]
+            other_item = {
+                "name": "All Others",
+                "value": sum(item.get("value", 0) for item in others),
+                "count": sum(item.get("count", 0) for item in others),
+                "total_amount": sum(item.get("total_amount", 0) for item in others)
+            }
+            top_4.append(other_item)
+        
+        final_data = top_4
+
+        # Colors identical to HTML dashboard
+        colors = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6']
+        
+        # Chart title identical to HTML dashboard
+        chart_title = f"Total: {total_value:,}"
+        
+        # Create donut pie chart identical to HTML dashboard
         fig = go.Figure(data=[go.Pie(
-            labels=[item["name"] for item in distribution],
-            values=[item["value"] for item in distribution],
-            hole=0.4,
-            marker_colors=['#3B82F6', '#F59E0B', '#10B981', '#8B5CF6', '#EF4444'][:len(distribution)],
+            labels=[item["name"] for item in final_data],
+            values=[item["value"] for item in final_data],
+            hole=0.4,  # Donut chart like HTML dashboard
+            marker_colors=colors[:len(final_data)],
             textinfo='label+percent',
-            hovertemplate='<b>%{label}</b><br>Filings: %{value}<br>Percentage: %{percent}<extra></extra>'
+            textposition='auto',
+            hovertemplate='<b>%{label}</b><br>Filings: %{value:,}<br>Percentage: %{percent}<extra></extra>',
+            # Add data labels inside slices like HTML dashboard
+            textfont=dict(size=12, family="Inter", color="white")
         )])
         
         fig.update_layout(
-            title="Security Type Distribution<br><sub>Real Form D filings by security type</sub>",
+            title=dict(
+                text=f"Security Type Distribution<br><sub style='color:#666'>{chart_title}</sub>",
+                x=0.5,
+                font=dict(size=16, family="Inter", weight=600, color="#333")
+            ),
             template="plotly_dark",
             height=400,
-            showlegend=True
+            showlegend=True,
+            legend=dict(
+                orientation="v", 
+                yanchor="middle", 
+                y=0.5,
+                font=dict(family="Inter", size=12)
+            ),
+            # Background and styling identical to HTML dashboard
+            plot_bgcolor='rgba(0,0,0,0)',
+            paper_bgcolor='rgba(0,0,0,0)',
+            font=dict(family="Inter")
         )
         
         return json.loads(fig.to_json())
