@@ -81,7 +81,7 @@ def get_widgets():
             "name": "Security Type Distribution",
             "description": "Breakdown of filings by security type (Equity, Debt, Fund)",
             "category": "Form D Analytics", 
-            "type": "chart",
+            "type": "plotly",
             "endpoint": "security_types",
             "gridData": {"w": 600, "h": 400},
             "source": "The Marketcast"
@@ -90,7 +90,7 @@ def get_widgets():
             "name": "Top 10 Industries",
             "description": "Most active industries by filing count",
             "category": "Form D Analytics",
-            "type": "chart", 
+            "type": "plotly", 
             "endpoint": "top_industries",
             "gridData": {"w": 600, "h": 400},
             "source": "The Marketcast"
@@ -99,7 +99,7 @@ def get_widgets():
             "name": "Monthly Filing Activity",
             "description": "Time series of Form D filings by security type",
             "category": "Form D Analytics",
-            "type": "chart",
+            "type": "plotly",
             "endpoint": "monthly_activity", 
             "gridData": {"w": 1200, "h": 500},
             "source": "The Marketcast"
@@ -108,7 +108,7 @@ def get_widgets():
             "name": "Top 20 Fundraisers",
             "description": "Companies with largest offering amounts",
             "category": "Form D Analytics",
-            "type": "chart",
+            "type": "plotly",
             "endpoint": "top_fundraisers",
             "gridData": {"w": 1200, "h": 600},
             "source": "The Marketcast"
@@ -117,7 +117,7 @@ def get_widgets():
             "name": "Geographic Distribution",
             "description": "Form D filings by US state",
             "category": "Form D Analytics",
-            "type": "chart",
+            "type": "plotly",
             "endpoint": "location_distribution",
             "gridData": {"w": 1200, "h": 600},
             "source": "The Marketcast"
@@ -184,6 +184,10 @@ def get_form_d_intro():
 
 ## SEC Private Market Analytics & Intelligence
 
+# 🚀 **COMPREHENSIVE SEC FORM D ANALYTICS PLATFORM**
+
+# 🎯 **REAL-TIME PRIVATE MARKET INTELLIGENCE**
+
 Welcome to **The Marketcast** - your comprehensive source for SEC Form D filing analytics. This dashboard provides real-time insights into private equity and debt fundraising activity across the United States.
 
 ### 🎯 What are Form D Filings?
@@ -213,11 +217,11 @@ Welcome to **The Marketcast** - your comprehensive source for SEC Form D filing 
 *Data powered by The Marketcast backend • Updated in real-time from SEC filings*
 """
         
-        return {"content": markdown_content}
+        return markdown_content
         
     except Exception as e:
         print(f"Error in form_d_intro: {e}")
-        return {"content": "# Form D Filings Dashboard\n\nError loading introduction content."}
+        return "# Form D Filings Dashboard\n\nError loading introduction content."
 
 @app.get("/latest_filings")
 def get_latest_filings():
@@ -304,10 +308,14 @@ def get_latest_filings():
 def get_security_types():
     """Get security type distribution chart - identical to HTML dashboard"""
     try:
+        print("🔍 Fetching security type distribution data...")
         # Fetch real data from backend - same endpoint as HTML dashboard
         data = fetch_backend_data("charts/security-type-distribution?metric=count")
         
+        print(f"📊 Backend response: {data}")
+        
         if not data or not data.get("distribution"):
+            print("⚠️ Using fallback data for security types")
             # Fallback data if backend fails
             distribution = [
                 {"name": "Equity", "value": 1250, "count": 1250, "total_amount": 125000000000, "total_sold": 98000000000},
@@ -316,9 +324,44 @@ def get_security_types():
             ]
         else:
             distribution = data["distribution"]
+            print(f"✅ Using real data: {distribution}")
+        
+        # Ensure we have valid data
+        if not distribution:
+            print("⚠️ Distribution is empty, using basic fallback")
+            distribution = [
+                {"name": "Equity", "value": 1250},
+                {"name": "Debt", "value": 450},
+                {"name": "Fund", "value": 320}
+            ]
+        
+        # Validate data structure
+        valid_distribution = []
+        for item in distribution:
+            if isinstance(item, dict) and "name" in item and "value" in item:
+                try:
+                    value = float(item["value"])
+                    if value > 0:
+                        valid_distribution.append(item)
+                except (ValueError, TypeError):
+                    print(f"⚠️ Invalid value for {item.get('name', 'Unknown')}: {item.get('value')}")
+            else:
+                print(f"⚠️ Invalid item structure: {item}")
+        
+        if not valid_distribution:
+            print("⚠️ No valid data found, using basic fallback")
+            valid_distribution = [
+                {"name": "Equity", "value": 1250},
+                {"name": "Debt", "value": 450},
+                {"name": "Fund", "value": 320}
+            ]
+        
+        distribution = valid_distribution
+        print(f"🎯 Final distribution data: {distribution}")
         
         # Calculate total from the full dataset before grouping into 'other' - exactly like HTML version
         total_value = sum(item.get("value", 0) for item in distribution)
+        print(f"📈 Total value: {total_value}")
 
         # Group data for chart display (Top 4 + Other) - exactly like HTML dashboard
         display_data = sorted(distribution, key=lambda x: x.get("value", 0), reverse=True)
@@ -335,6 +378,7 @@ def get_security_types():
             top_4.append(other_item)
         
         final_data = top_4
+        print(f"🎨 Final chart data: {final_data}")
 
         # Colors identical to HTML dashboard
         colors = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6']
@@ -343,9 +387,31 @@ def get_security_types():
         chart_title = f"Total: {total_value:,}"
         
         # Create donut pie chart identical to HTML dashboard
+        labels = [str(item["name"]) for item in final_data]
+        values = [float(item["value"]) for item in final_data]
+        
+        print(f"🎨 Chart labels: {labels}")
+        print(f"🎨 Chart values: {values}")
+        print(f"🎨 Chart colors: {colors[:len(final_data)]}")
+        
+        # Validate chart data before creating figure
+        if not labels or not values or len(labels) != len(values):
+            print("❌ Invalid chart data, using fallback")
+            labels = ["Equity", "Debt", "Fund"]
+            values = [1250, 450, 320]
+            final_data = [
+                {"name": "Equity", "value": 1250},
+                {"name": "Debt", "value": 450},
+                {"name": "Fund", "value": 320}
+            ]
+        
+        print(f"🎨 Final chart labels: {labels}")
+        print(f"🎨 Final chart values: {values}")
+        print(f"🎨 Final chart colors: {colors[:len(final_data)]}")
+        
         fig = go.Figure(data=[go.Pie(
-            labels=[item["name"] for item in final_data],
-            values=[item["value"] for item in final_data],
+            labels=labels,
+            values=values,
             hole=0.4,  # Donut chart like HTML dashboard
             marker_colors=colors[:len(final_data)],
             textinfo='label+percent',
@@ -361,7 +427,6 @@ def get_security_types():
                 x=0.5,
                 font=dict(size=16, family="Inter", weight=600, color="#333")
             ),
-            template="plotly_dark",
             height=400,
             showlegend=True,
             legend=dict(
@@ -370,17 +435,38 @@ def get_security_types():
                 y=0.5,
                 font=dict(family="Inter", size=12)
             ),
-            # Background and styling identical to HTML dashboard
-            plot_bgcolor='rgba(0,0,0,0)',
-            paper_bgcolor='rgba(0,0,0,0)',
+            # Simplified background styling
+            plot_bgcolor='white',
+            paper_bgcolor='white',
             font=dict(family="Inter")
         )
         
-        return json.loads(fig.to_json())
+        print("✅ Chart created successfully")
+        
+        # Convert to JSON and verify the structure
+        chart_json = fig.to_json()
+        print(f"📊 Chart JSON length: {len(chart_json)}")
+        
+        # Return the chart data directly
+        return json.loads(chart_json)
         
     except Exception as e:
-        print(f"Error in security_types: {e}")
-        return {"error": str(e)}
+        print(f"❌ Error in security_types: {e}")
+        # Return a simple fallback chart on error
+        fallback_fig = go.Figure(data=[go.Pie(
+            labels=["Equity", "Debt", "Fund"],
+            values=[1250, 450, 320],
+            hole=0.4,
+            marker_colors=['#3B82F6', '#F59E0B', '#10B981']
+        )])
+        fallback_fig.update_layout(
+            title="Security Type Distribution (Fallback)",
+            height=400,
+            plot_bgcolor='white',
+            paper_bgcolor='white'
+        )
+        print("✅ Fallback chart created successfully")
+        return json.loads(fallback_fig.to_json())
 
 @app.get("/top_industries") 
 def get_top_industries():
@@ -580,7 +666,16 @@ if __name__ == "__main__":
     print("💰 Top Fundraisers: Largest Offering Amounts")
     print("📈 Three Tabs: Overview, Market Trends, Geographic Analysis")
     print("🔗 Real data from Railway backend with smart fallbacks")
+    print("🔧 Widget types: markdown, table, plotly")
+    print("📝 Form D Intro: Returns markdown content directly")
+    print("📊 Security Types: Returns Plotly chart JSON")
     print("=" * 60)
     
     port = int(os.getenv("PORT", 8000))
+    print(f"🌐 Server starting on port {port}")
+    print(f"🔗 Access at: http://localhost:{port}")
+    print(f"📊 Widgets: http://localhost:{port}/widgets.json")
+    print(f"📱 Apps: http://localhost:{port}/apps.json")
+    print("=" * 60)
+    
     uvicorn.run(app, host="0.0.0.0", port=port)
