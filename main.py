@@ -180,37 +180,33 @@ def get_form_d_intro():
         total_filings = f"{stats.get('total_filings', 2450):,}" if stats else "2,450+"
         total_raised = stats.get("total_offering_amount", "$125B+") if stats else "$125B+"
         
-        markdown_content = f"""# 📊 Form D Filings Dashboard
+        markdown_content = f"""# Form D Filings Dashboard
 
 ## SEC Private Market Analytics & Intelligence
 
-# 🚀 **COMPREHENSIVE SEC FORM D ANALYTICS PLATFORM**
-
-# 🎯 **REAL-TIME PRIVATE MARKET INTELLIGENCE**
-
 Welcome to **The Marketcast** - your comprehensive source for SEC Form D filing analytics. This dashboard provides real-time insights into private equity and debt fundraising activity across the United States.
 
-### 🎯 What are Form D Filings?
+### What are Form D Filings?
 
 **Form D** is a brief notice filing that companies must submit to the SEC when they sell securities under certain exemptions from registration. These filings provide a window into private market activity including:
 
-- **🏢 Private Equity Raises** - Venture capital, growth equity, and buyout funds
-- **💰 Debt Offerings** - Private debt, mezzanine financing, and credit facilities  
-- **🏛️ Investment Funds** - Hedge funds, private equity funds, and real estate funds
-- **🚀 Startup Funding** - Seed rounds, Series A/B/C, and growth financing
+- **Private Equity Raises** - Venture capital, growth equity, and buyout funds
+- **Debt Offerings** - Private debt, mezzanine financing, and credit facilities  
+- **Investment Funds** - Hedge funds, private equity funds, and real estate funds
+- **Startup Funding** - Seed rounds, Series A/B/C, and growth financing
 
-### 📈 Current Market Snapshot
+### Current Market Snapshot
 
 - **{total_filings}** total filings tracked
 - **{total_raised}** in total offering amounts
 - **Real-time data** updated from SEC EDGAR database
 - **Advanced analytics** with geographic and industry breakdowns
 
-### 💡 How to Use This Dashboard
+### Dashboard Navigation
 
-**Overview Tab**: See the latest filings, security type breakdown, and top industries  
-**Market Trends**: Analyze monthly activity patterns and identify top fundraisers  
-**Geographic Analysis**: Explore regional fundraising activity across US states
+**Overview Tab**: Latest filings, security type breakdown, and top industries  
+**Market Trends**: Monthly activity patterns and top fundraisers  
+**Geographic Analysis**: Regional fundraising activity across US states
 
 ---
 
@@ -425,7 +421,7 @@ def get_security_types():
             title=dict(
                 text=f"Security Type Distribution<br><sub style='color:#666'>{chart_title}</sub>",
                 x=0.5,
-                font=dict(size=16, family="Inter", weight=600, color="#333")
+                font=dict(size=16, family="Inter", color="#333")
             ),
             height=400,
             showlegend=True,
@@ -667,7 +663,7 @@ if __name__ == "__main__":
     print("📈 Three Tabs: Overview, Market Trends, Geographic Analysis")
     print("🔗 Real data from Railway backend with smart fallbacks")
     print("🔧 Widget types: markdown, table, chart")
-    print("📝 Form D Intro: Returns markdown content directly")
+    print("📝 Form D Intro: Professional markdown content without emojis")
     print("📊 Security Types: Returns Plotly chart JSON for OpenBB chart widget")
     print("=" * 60)
     
