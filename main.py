@@ -223,7 +223,16 @@ def get_security_types():
             legend=dict(orientation="v", yanchor="middle", y=0.5)
         )
         
-        return json.loads(fig.to_json())
+        # Return in OpenBB expected format
+        return {
+            "data": {
+                "mainTicker": {
+                    "id": "FORM_D_SECURITY_TYPES",
+                    "symbol": "FORM_D_SEC_TYPES"
+                }
+            },
+            "chart": json.loads(fig.to_json())
+        }
         
     except Exception as e:
         print(f"Error in security_types: {e}")
@@ -259,7 +268,16 @@ def get_top_industries():
             margin=dict(l=150)  # Left margin for industry names
         )
         
-        return json.loads(fig.to_json())
+        # Return in OpenBB expected format
+        return {
+            "data": {
+                "mainTicker": {
+                    "id": "FORM_D_INDUSTRIES",
+                    "symbol": "FORM_D_IND"
+                }
+            },
+            "chart": json.loads(fig.to_json())
+        }
         
     except Exception as e:
         print(f"Error in top_industries: {e}")
@@ -315,7 +333,16 @@ def get_monthly_activity():
             hovermode='x unified'
         )
         
-        return json.loads(fig.to_json())
+        # Return in OpenBB expected format
+        return {
+            "data": {
+                "mainTicker": {
+                    "id": "FORM_D_MONTHLY",
+                    "symbol": "FORM_D_MONTHLY"
+                }
+            },
+            "chart": json.loads(fig.to_json())
+        }
         
     except Exception as e:
         print(f"Error in monthly_activity: {e}")
@@ -356,7 +383,16 @@ def get_top_fundraisers():
             margin=dict(l=200)  # Left margin for company names
         )
         
-        return json.loads(fig.to_json())
+        # Return in OpenBB expected format
+        return {
+            "data": {
+                "mainTicker": {
+                    "id": "FORM_D_FUNDRAISERS",
+                    "symbol": "FORM_D_FUND"
+                }
+            },
+            "chart": json.loads(fig.to_json())
+        }
         
     except Exception as e:
         print(f"Error in top_fundraisers: {e}")
@@ -396,7 +432,16 @@ def get_location_distribution():
             height=600
         )
         
-        return json.loads(fig.to_json())
+        # Return in OpenBB expected format
+        return {
+            "data": {
+                "mainTicker": {
+                    "id": "FORM_D_GEOGRAPHY",
+                    "symbol": "FORM_D_GEO"
+                }
+            },
+            "chart": json.loads(fig.to_json())
+        }
         
     except Exception as e:
         print(f"Error in location_distribution: {e}")
