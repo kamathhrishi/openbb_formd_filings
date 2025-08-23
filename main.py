@@ -63,7 +63,7 @@ def get_widgets():
             "name": "Form D Summary Stats",
             "description": "Key statistics from SEC Form D filings",
             "category": "Form D Analytics",
-            "type": "stats",
+            "type": "table",
             "endpoint": "form_d_stats",
             "gridData": {"w": 1200, "h": 400},
             "source": "The Marketcast"
@@ -72,7 +72,7 @@ def get_widgets():
             "name": "Security Type Distribution",
             "description": "Breakdown of filings by security type (Equity, Debt, Fund)",
             "category": "Form D Analytics", 
-            "type": "chart",
+            "type": "advanced_charting",
             "endpoint": "security_types",
             "gridData": {"w": 600, "h": 400},
             "source": "The Marketcast"
@@ -81,7 +81,7 @@ def get_widgets():
             "name": "Top 10 Industries",
             "description": "Most active industries by filing count",
             "category": "Form D Analytics",
-            "type": "chart", 
+            "type": "advanced_charting", 
             "endpoint": "top_industries",
             "gridData": {"w": 600, "h": 400},
             "source": "The Marketcast"
@@ -90,7 +90,7 @@ def get_widgets():
             "name": "Monthly Filing Activity",
             "description": "Time series of Form D filings by security type",
             "category": "Form D Analytics",
-            "type": "chart",
+            "type": "advanced_charting",
             "endpoint": "monthly_activity", 
             "gridData": {"w": 1200, "h": 500},
             "source": "The Marketcast"
@@ -99,7 +99,7 @@ def get_widgets():
             "name": "Top 20 Fundraisers",
             "description": "Companies with largest offering amounts",
             "category": "Form D Analytics",
-            "type": "chart",
+            "type": "advanced_charting",
             "endpoint": "top_fundraisers",
             "gridData": {"w": 1200, "h": 600},
             "source": "The Marketcast"
@@ -108,7 +108,7 @@ def get_widgets():
             "name": "Geographic Distribution",
             "description": "Form D filings by US state",
             "category": "Form D Analytics",
-            "type": "chart",
+            "type": "advanced_charting",
             "endpoint": "location_distribution",
             "gridData": {"w": 1200, "h": 600},
             "source": "The Marketcast"
@@ -162,49 +162,32 @@ def get_apps():
 
 @app.get("/form_d_stats")
 def get_form_d_stats():
-    """Get Form D summary statistics"""
+    """Get Form D summary statistics as table"""
     try:
         stats = fetch_backend_data("stats")
         
         if not stats:
             raise HTTPException(status_code=500, detail="Failed to fetch stats from backend")
         
-        # Create a summary visualization
-        fig = go.Figure()
-        
-        # Key metrics as cards
-        metrics = [
-            {"name": "Total Filings", "value": stats.get("total_filings", 0), "color": "#3B82F6"},
-            {"name": "Total Raised", "value": stats.get("total_offering_amount", "$0"), "color": "#10B981"},
-            {"name": "Total Sold", "value": stats.get("total_amount_sold", "$0"), "color": "#F59E0B"},
-            {"name": "Total Investors", "value": stats.get("total_investors", 0), "color": "#8B5CF6"},
-            {"name": "Equity Filings", "value": stats.get("equity_filings", 0), "color": "#EF4444"},
-            {"name": "Debt Filings", "value": stats.get("debt_filings", 0), "color": "#06B6D4"},
-            {"name": "Fund Filings", "value": stats.get("fund_filings", 0), "color": "#84CC16"}
+        # Create table format for OpenBB
+        table_data = [
+            {"Metric": "Total Filings", "Value": f"{stats.get('total_filings', 0):,}"},
+            {"Metric": "Total Offering Amount", "Value": stats.get("total_offering_amount", "$0")},
+            {"Metric": "Total Amount Sold", "Value": stats.get("total_amount_sold", "$0")},
+            {"Metric": "Total Investors", "Value": f"{stats.get('total_investors', 0):,}"},
+            {"Metric": "Equity Filings", "Value": f"{stats.get('equity_filings', 0):,}"},
+            {"Metric": "Debt Filings", "Value": f"{stats.get('debt_filings', 0):,}"},
+            {"Metric": "Fund Filings", "Value": f"{stats.get('fund_filings', 0):,}"},
+            {"Metric": "Largest Offering", "Value": stats.get("largest_offering", "N/A")},
+            {"Metric": "Average Offering", "Value": stats.get("average_offering", "N/A")},
+            {"Metric": "Median Offering", "Value": stats.get("median_offering", "N/A")}
         ]
         
-        # Create bar chart of key metrics (numeric only)
-        numeric_metrics = [m for m in metrics if isinstance(m["value"], (int, float))]
-        
-        fig.add_trace(go.Bar(
-            x=[m["name"] for m in numeric_metrics],
-            y=[m["value"] for m in numeric_metrics],
-            marker_color=[m["color"] for m in numeric_metrics],
-            text=[f'{m["value"]:,}' for m in numeric_metrics],
-            textposition='outside',
-            hovertemplate='%{x}<br>Value: %{text}<extra></extra>'
-        ))
-        
-        fig.update_layout(
-            title=f"Form D Filing Statistics<br><sub>Total: {stats.get('total_filings', 0):,} filings</sub>",
-            xaxis_title="Metric",
-            yaxis_title="Count",
-            template="plotly_dark",
-            height=400,
-            showlegend=False
-        )
-        
-        return json.loads(fig.to_json())
+        return {
+            "data": table_data,
+            "title": "Form D Filing Statistics",
+            "columns": ["Metric", "Value"]
+        }
         
     except Exception as e:
         print(f"Error in form_d_stats: {e}")
