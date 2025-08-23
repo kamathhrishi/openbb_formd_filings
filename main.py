@@ -81,7 +81,7 @@ def get_widgets():
             "name": "Security Type Distribution",
             "description": "Breakdown of filings by security type (Equity, Debt, Fund)",
             "category": "Form D Analytics", 
-            "type": "plotly",
+            "type": "chart",
             "endpoint": "security_types",
             "gridData": {"w": 600, "h": 400},
             "source": "The Marketcast"
@@ -90,7 +90,7 @@ def get_widgets():
             "name": "Top 10 Industries",
             "description": "Most active industries by filing count",
             "category": "Form D Analytics",
-            "type": "plotly", 
+            "type": "chart", 
             "endpoint": "top_industries",
             "gridData": {"w": 600, "h": 400},
             "source": "The Marketcast"
@@ -99,7 +99,7 @@ def get_widgets():
             "name": "Monthly Filing Activity",
             "description": "Time series of Form D filings by security type",
             "category": "Form D Analytics",
-            "type": "plotly",
+            "type": "chart",
             "endpoint": "monthly_activity", 
             "gridData": {"w": 1200, "h": 500},
             "source": "The Marketcast"
@@ -108,7 +108,7 @@ def get_widgets():
             "name": "Top 20 Fundraisers",
             "description": "Companies with largest offering amounts",
             "category": "Form D Analytics",
-            "type": "plotly",
+            "type": "chart",
             "endpoint": "top_fundraisers",
             "gridData": {"w": 1200, "h": 600},
             "source": "The Marketcast"
@@ -117,7 +117,7 @@ def get_widgets():
             "name": "Geographic Distribution",
             "description": "Form D filings by US state",
             "category": "Form D Analytics",
-            "type": "plotly",
+            "type": "chart",
             "endpoint": "location_distribution",
             "gridData": {"w": 1200, "h": 600},
             "source": "The Marketcast"
@@ -666,9 +666,9 @@ if __name__ == "__main__":
     print("💰 Top Fundraisers: Largest Offering Amounts")
     print("📈 Three Tabs: Overview, Market Trends, Geographic Analysis")
     print("🔗 Real data from Railway backend with smart fallbacks")
-    print("🔧 Widget types: markdown, table, plotly")
+    print("🔧 Widget types: markdown, table, chart")
     print("📝 Form D Intro: Returns markdown content directly")
-    print("📊 Security Types: Returns Plotly chart JSON")
+    print("📊 Security Types: Returns Plotly chart JSON for OpenBB chart widget")
     print("=" * 60)
     
     port = int(os.getenv("PORT", 8000))
