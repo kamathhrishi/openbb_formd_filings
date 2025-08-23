@@ -428,7 +428,9 @@ def get_security_types():
                 yanchor="middle", 
                 y=0.5,
                 font=dict(size=12)
-            )
+            ),
+            plot_bgcolor='rgba(0,0,0,0)',
+            paper_bgcolor='rgba(0,0,0,0)'
         )
         
         print("✅ Chart created successfully")
@@ -451,7 +453,9 @@ def get_security_types():
         )])
         fallback_fig.update_layout(
             title="Security Type Distribution (Fallback)",
-            height=400
+            height=400,
+            plot_bgcolor='rgba(0,0,0,0)',
+            paper_bgcolor='rgba(0,0,0,0)'
         )
         print("✅ Fallback chart created successfully")
         return json.loads(fallback_fig.to_json())
@@ -496,7 +500,9 @@ def get_top_industries():
             margin=dict(l=150, r=50, t=80, b=50),
             xaxis=dict(
                 range=[0, max([item["value"] for item in distribution]) * 1.1]
-            )
+            ),
+            plot_bgcolor='rgba(0,0,0,0)',
+            paper_bgcolor='rgba(0,0,0,0)'
         )
         
         return json.loads(fig.to_json())
@@ -552,7 +558,9 @@ def get_monthly_activity():
             margin=dict(l=80, r=50, t=80, b=80),
             yaxis=dict(
                 range=[0, max(max(equity_data), max(debt_data), max(fund_data)) * 1.1]
-            )
+            ),
+            plot_bgcolor='rgba(0,0,0,0)',
+            paper_bgcolor='rgba(0,0,0,0)'
         )
         
         return json.loads(fig.to_json())
@@ -602,7 +610,9 @@ def get_top_fundraisers():
             margin=dict(l=200, r=50, t=80, b=80),
             xaxis=dict(
                 range=[0, max([item["amount"] for item in fundraisers]) * 1.1]
-            )
+            ),
+            plot_bgcolor='rgba(0,0,0,0)',
+            paper_bgcolor='rgba(0,0,0,0)'
         )
         
         return json.loads(fig.to_json())
@@ -650,7 +660,9 @@ def get_location_distribution():
                 lakecolor='rgb(255, 255, 255)',
             ),
             height=600,
-            margin=dict(l=50, r=50, t=80, b=50)
+            margin=dict(l=50, r=50, t=80, b=50),
+            plot_bgcolor='rgba(0,0,0,0)',
+            paper_bgcolor='rgba(0,0,0,0)'
         )
         
         return json.loads(fig.to_json())
