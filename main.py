@@ -59,12 +59,12 @@ def read_root():
 def get_widgets():
     """Form D analytics widget configuration"""
     widgets_config = {
-        "form_d_stats": {
-            "name": "Form D Summary Stats",
-            "description": "Key statistics from SEC Form D filings",
+        "latest_filings": {
+            "name": "Latest Form D Filings",
+            "description": "Most recent SEC Form D filings",
             "category": "Form D Analytics",
             "type": "table",
-            "endpoint": "form_d_stats",
+            "endpoint": "latest_filings",
             "gridData": {"w": 1200, "h": 400},
             "source": "The Marketcast"
         },
@@ -133,7 +133,7 @@ def get_apps():
                     "id": "overview",
                     "name": "Overview",
                     "layout": [
-                        {"i": "form_d_stats", "x": 0, "y": 0, "w": 40, "h": 12},
+                        {"i": "latest_filings", "x": 0, "y": 0, "w": 40, "h": 12},
                         {"i": "security_types", "x": 0, "y": 12, "w": 20, "h": 16},
                         {"i": "top_industries", "x": 20, "y": 12, "w": 20, "h": 16}
                     ]
@@ -160,51 +160,86 @@ def get_apps():
     
     return JSONResponse(content=apps_config)
 
-@app.get("/form_d_stats")
-def get_form_d_stats():
-    """Get Form D summary statistics as table"""
+@app.get("/latest_filings")
+def get_latest_filings():
+    """Get latest Form D filings as table data"""
     try:
-        # Fetch real data from backend
-        stats = fetch_backend_data("stats")
+        # Fetch real data from backend - get latest filings
+        data = fetch_backend_data("filings?page=1&per_page=15")
         
-        if not stats:
-            # Fallback data
-            stats = {
-                "total_filings": 2450,
-                "total_offering_amount": "$125.5B",
-                "total_amount_sold": "$98.2B", 
-                "total_investors": 45678,
-                "equity_filings": 1250,
-                "debt_filings": 890,
-                "fund_filings": 310,
-                "largest_offering": "$2.5B",
-                "average_offering": "$51.2M",
-                "median_offering": "$15.8M"
-            }
+        if not data or not data.get("data"):
+            # Fallback data - simple list of dictionaries
+            return [
+                {
+                    "company": "TechCorp Inc", 
+                    "amount": "$500.0M", 
+                    "type": "Equity",
+                    "industry": "Technology",
+                    "location": "San Francisco, CA",
+                    "date": "2024-08-20"
+                },
+                {
+                    "company": "HealthVentures LLC", 
+                    "amount": "$250.0M", 
+                    "type": "Equity", 
+                    "industry": "Healthcare",
+                    "location": "Boston, MA",
+                    "date": "2024-08-19"
+                },
+                {
+                    "company": "GreenEnergy Partners", 
+                    "amount": "$150.0M", 
+                    "type": "Fund",
+                    "industry": "Energy", 
+                    "location": "Austin, TX",
+                    "date": "2024-08-18"
+                },
+                {
+                    "company": "FinTech Solutions", 
+                    "amount": "$100.0M", 
+                    "type": "Debt",
+                    "industry": "Financial Services",
+                    "location": "New York, NY", 
+                    "date": "2024-08-17"
+                },
+                {
+                    "company": "RealEstate Holdings", 
+                    "amount": "$75.0M", 
+                    "type": "Equity",
+                    "industry": "Real Estate",
+                    "location": "Miami, FL", 
+                    "date": "2024-08-16"
+                }
+            ]
         
-        # Create table format for OpenBB
-        table_data = [
-            {"Metric": "Total Filings", "Value": f"{stats.get('total_filings', 0):,}"},
-            {"Metric": "Total Offering Amount", "Value": stats.get("total_offering_amount", "$0")},
-            {"Metric": "Total Amount Sold", "Value": stats.get("total_amount_sold", "$0")},
-            {"Metric": "Total Investors", "Value": f"{stats.get('total_investors', 0):,}"},
-            {"Metric": "Equity Filings", "Value": f"{stats.get('equity_filings', 0):,}"},
-            {"Metric": "Debt Filings", "Value": f"{stats.get('debt_filings', 0):,}"},
-            {"Metric": "Fund Filings", "Value": f"{stats.get('fund_filings', 0):,}"},
-            {"Metric": "Largest Offering", "Value": stats.get("largest_offering", "N/A")},
-            {"Metric": "Average Offering", "Value": stats.get("average_offering", "N/A")},
-            {"Metric": "Median Offering", "Value": stats.get("median_offering", "N/A")}
-        ]
+        # Process real data from backend
+        filings = data["data"][:15]  # Latest 15
+        filings_data = []
         
-        return {
-            "data": table_data,
-            "title": "Form D Filing Statistics - Real Data from Railway Backend",
-            "columns": ["Metric", "Value"]
-        }
+        for filing in filings:
+            # Get display name (prefer conformed_name over company_name)
+            company_name = filing.get("display_name") or filing.get("company_name") or "Unknown Company"
+            
+            # Get formatted amounts
+            amount = filing.get("formatted_offering") or filing.get("formatted_sold") or "N/A"
+            
+            # Get location
+            location = filing.get("display_location") or f"{filing.get('city', 'Unknown')}, {filing.get('state', 'Unknown')}"
+            
+            filings_data.append({
+                "company": company_name[:45] + "..." if len(company_name) > 45 else company_name,
+                "amount": amount,
+                "type": filing.get("security_type") or "Unknown",
+                "industry": (filing.get("industry") or "Unknown")[:20] + "..." if len(filing.get("industry", "")) > 20 else (filing.get("industry") or "Unknown"), 
+                "location": location[:25] + "..." if len(location) > 25 else location,
+                "date": str(filing.get("filing_date")) if filing.get("filing_date") else "Unknown"
+            })
+        
+        return filings_data
         
     except Exception as e:
-        print(f"Error in form_d_stats: {e}")
-        return {"error": str(e)}
+        print(f"Error in latest_filings: {e}")
+        return [{"error": str(e)}]
 
 @app.get("/security_types")
 def get_security_types():
@@ -439,7 +474,7 @@ def get_location_distribution():
 if __name__ == "__main__":
     print("🚀 Starting Form D Analytics Hub")
     print(f"📡 Backend: {BACKEND_URL}")
-    print("📊 Widgets: Summary Stats, Security Types, Industries, Time Series")
+    print("📊 Widgets: Latest Filings, Security Types, Industries, Time Series")
     print("🗺️  Geographic: US State Distribution")
     print("💰 Top Fundraisers: Largest Offering Amounts")
     print("📈 Three Tabs: Overview, Market Trends, Geographic Analysis")
