@@ -4,17 +4,17 @@ import os
 import requests
 from datetime import datetime
 import pandas as pd
-import yfinance as yf
 import plotly.graph_objects as go
-from fastapi import FastAPI
+import plotly.express as px
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 import uvicorn
 
 # Initialize FastAPI application
 app = FastAPI(
-    title="S&P 500 Data Hub",
-    description="Simple S&P 500 chart widget",
+    title="Form D Analytics Hub",
+    description="SEC Form D filing analytics powered by The Marketcast backend",
     version="1.0.0"
 )
 
@@ -27,28 +27,91 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Backend configuration
+BACKEND_URL = os.getenv("FORM_D_BACKEND_URL", "https://web-production-570e.up.railway.app")
+
+def fetch_backend_data(endpoint):
+    """Fetch data from Form D backend with error handling"""
+    try:
+        url = f"{BACKEND_URL}/api/{endpoint}"
+        print(f"📡 Fetching: {url}")
+        response = requests.get(url, timeout=30)
+        response.raise_for_status()
+        data = response.json()
+        print(f"✅ Success: {endpoint}")
+        return data
+    except requests.exceptions.RequestException as e:
+        print(f"❌ Error fetching {endpoint}: {e}")
+        return None
+
 @app.get("/")
 def read_root():
     """Root endpoint"""
     return {
-        "Info": "S&P 500 Data Hub",
+        "name": "Form D Analytics Hub",
         "status": "running",
-        "symbol": "^GSPC (S&P 500)",
-        "data_source": "yfinance"
+        "backend": BACKEND_URL,
+        "data_source": "SEC Form D Filings",
+        "description": "Private equity and debt fundraising analytics"
     }
 
 @app.get("/widgets.json")
 def get_widgets():
-    """S&P 500 widget configuration"""
+    """Form D analytics widget configuration"""
     widgets_config = {
-        "sp500_1y": {
-            "name": "S&P 500 Chart",
-            "description": "S&P 500 index 1-year historical data with volume",
-            "category": "Market Data",
+        "form_d_stats": {
+            "name": "Form D Summary Stats",
+            "description": "Key statistics from SEC Form D filings",
+            "category": "Form D Analytics",
+            "type": "stats",
+            "endpoint": "form_d_stats",
+            "gridData": {"w": 1200, "h": 400},
+            "source": "The Marketcast"
+        },
+        "security_types": {
+            "name": "Security Type Distribution",
+            "description": "Breakdown of filings by security type (Equity, Debt, Fund)",
+            "category": "Form D Analytics", 
             "type": "chart",
-            "endpoint": "sp500_1y",
+            "endpoint": "security_types",
+            "gridData": {"w": 600, "h": 400},
+            "source": "The Marketcast"
+        },
+        "top_industries": {
+            "name": "Top 10 Industries",
+            "description": "Most active industries by filing count",
+            "category": "Form D Analytics",
+            "type": "chart", 
+            "endpoint": "top_industries",
+            "gridData": {"w": 600, "h": 400},
+            "source": "The Marketcast"
+        },
+        "monthly_activity": {
+            "name": "Monthly Filing Activity",
+            "description": "Time series of Form D filings by security type",
+            "category": "Form D Analytics",
+            "type": "chart",
+            "endpoint": "monthly_activity", 
+            "gridData": {"w": 1200, "h": 500},
+            "source": "The Marketcast"
+        },
+        "top_fundraisers": {
+            "name": "Top 20 Fundraisers",
+            "description": "Companies with largest offering amounts",
+            "category": "Form D Analytics",
+            "type": "chart",
+            "endpoint": "top_fundraisers",
             "gridData": {"w": 1200, "h": 600},
-            "source": "Yahoo Finance"
+            "source": "The Marketcast"
+        },
+        "location_distribution": {
+            "name": "Geographic Distribution",
+            "description": "Form D filings by US state",
+            "category": "Form D Analytics",
+            "type": "chart",
+            "endpoint": "location_distribution",
+            "gridData": {"w": 1200, "h": 600},
+            "source": "The Marketcast"
         }
     }
     
@@ -56,21 +119,38 @@ def get_widgets():
 
 @app.get("/apps.json")
 def get_apps():
-    """Simple app with S&P 500 widget"""
+    """Form D analytics dashboard app configuration"""
     apps_config = [
         {
-            "name": "S&P 500 Dashboard",
-            "img": "https://images.unsplash.com/photo-1590283603385-17ffb3a7f29f?w=250&h=200&fit=crop",
-            "img_dark": "https://images.unsplash.com/photo-1590283603385-17ffb3a7f29f?w=250&h=200&fit=crop",
-            "img_light": "https://images.unsplash.com/photo-1590283603385-17ffb3a7f29f?w=250&h=200&fit=crop",
-            "description": "S&P 500 index chart showing 1 year of market data",
+            "name": "Form D Analytics Dashboard",
+            "img": "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=250&h=200&fit=crop",
+            "img_dark": "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=250&h=200&fit=crop", 
+            "img_light": "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=250&h=200&fit=crop",
+            "description": "SEC Form D filing analytics - private equity and debt fundraising insights",
             "allowCustomization": True,
             "tabs": {
-                "main": {
-                    "id": "main",
-                    "name": "S&P 500",
+                "overview": {
+                    "id": "overview",
+                    "name": "Overview",
                     "layout": [
-                        {"i": "sp500_1y", "x": 0, "y": 0, "w": 40, "h": 20}
+                        {"i": "form_d_stats", "x": 0, "y": 0, "w": 40, "h": 12},
+                        {"i": "security_types", "x": 0, "y": 12, "w": 20, "h": 16},
+                        {"i": "top_industries", "x": 20, "y": 12, "w": 20, "h": 16}
+                    ]
+                },
+                "trends": {
+                    "id": "trends", 
+                    "name": "Market Trends",
+                    "layout": [
+                        {"i": "monthly_activity", "x": 0, "y": 0, "w": 40, "h": 20},
+                        {"i": "top_fundraisers", "x": 0, "y": 20, "w": 40, "h": 24}
+                    ]
+                },
+                "geography": {
+                    "id": "geography",
+                    "name": "Geographic Analysis", 
+                    "layout": [
+                        {"i": "location_distribution", "x": 0, "y": 0, "w": 40, "h": 24}
                     ]
                 }
             },
@@ -80,124 +160,273 @@ def get_apps():
     
     return JSONResponse(content=apps_config)
 
-@app.get("/sp500_1y")
-def get_sp500_1y():
-    """Get S&P 500 1-year data - basic yfinance only"""
+@app.get("/form_d_stats")
+def get_form_d_stats():
+    """Get Form D summary statistics"""
     try:
-        print("=== Fetching S&P 500 Data ===")
+        stats = fetch_backend_data("stats")
         
-        data_source = "Sample Data"
-        hist = None
+        if not stats:
+            raise HTTPException(status_code=500, detail="Failed to fetch stats from backend")
         
-        # Try S&P 500 symbols with minimal yfinance parameters
-        sp500_symbols = ["^GSPC", "SPY", "VOO"]
-        
-        for symbol in sp500_symbols:
-            try:
-                print(f"Trying {symbol} with minimal yfinance...")
-                
-                # Use absolutely minimal yfinance call
-                ticker = yf.Ticker(symbol)
-                hist = ticker.history(period="1y")  # Only period, no other params
-                
-                print(f"{symbol} returned: {len(hist) if hist is not None else 0} rows")
-                
-                if hist is not None and not hist.empty and len(hist) > 50:
-                    print(f"✅ SUCCESS with {symbol}! Got {len(hist)} rows of real data")
-                    data_source = f"Yahoo Finance ({symbol})"
-                    break
-                else:
-                    print(f"{symbol} insufficient data: {len(hist) if hist is not None else 0} rows")
-                    
-            except Exception as symbol_error:
-                print(f"{symbol} error: {symbol_error}")
-                continue
-        
-        # Create sample data if yfinance failed
-        if hist is None or hist.empty:
-            print("Creating S&P 500 sample data...")
-            
-            # 1 year of realistic S&P 500 data
-            dates = pd.date_range(start='2024-08-22', end='2025-08-22', freq='D')
-            
-            # S&P 500 around 5600 level
-            base_price = 5600
-            sample_data = []
-            
-            for i, date in enumerate(dates):
-                trend = i * 0.5  # Gradual upward trend
-                volatility = ((i % 30) - 15) * 15  # Daily volatility
-                
-                open_price = base_price + trend + volatility
-                high_price = open_price + ((i % 8) + 2) * 4
-                low_price = open_price - ((i % 8) + 2) * 4  
-                close_price = open_price + ((i % 10) - 5) * 5
-                volume = 3200000000 + ((i % 50) * 50000000)
-                
-                sample_data.append({
-                    "Open": max(open_price, 100),
-                    "High": max(high_price, open_price + 1),
-                    "Low": max(low_price, open_price - 15),
-                    "Close": max(close_price, 100),
-                    "Volume": volume
-                })
-            
-            hist = pd.DataFrame(sample_data, index=dates)
-            data_source = "Realistic S&P 500 Sample Data"
-        
-        print(f"Using data: {len(hist)} rows from {data_source}")
-        
-        # Create simple chart
+        # Create a summary visualization
         fig = go.Figure()
         
-        # Price line
-        fig.add_trace(
-            go.Scatter(
-                x=hist.index,
-                y=hist['Close'],
-                mode='lines',
-                name='S&P 500',
-                line=dict(color='#ff6b35', width=3),
-                hovertemplate='Date: %{x}<br>Price: $%{y:,.2f}<extra></extra>'
-            )
-        )
+        # Key metrics as cards
+        metrics = [
+            {"name": "Total Filings", "value": stats.get("total_filings", 0), "color": "#3B82F6"},
+            {"name": "Total Raised", "value": stats.get("total_offering_amount", "$0"), "color": "#10B981"},
+            {"name": "Total Sold", "value": stats.get("total_amount_sold", "$0"), "color": "#F59E0B"},
+            {"name": "Total Investors", "value": stats.get("total_investors", 0), "color": "#8B5CF6"},
+            {"name": "Equity Filings", "value": stats.get("equity_filings", 0), "color": "#EF4444"},
+            {"name": "Debt Filings", "value": stats.get("debt_filings", 0), "color": "#06B6D4"},
+            {"name": "Fund Filings", "value": stats.get("fund_filings", 0), "color": "#84CC16"}
+        ]
         
-        # Volume bars
-        fig.add_trace(
-            go.Bar(
-                x=hist.index,
-                y=hist['Volume'],
-                name='Volume',
-                yaxis='y2',
-                opacity=0.3,
-                marker_color='rgba(99,110,250,0.6)',
-                hovertemplate='Date: %{x}<br>Volume: %{y:,}<extra></extra>'
-            )
-        )
+        # Create bar chart of key metrics (numeric only)
+        numeric_metrics = [m for m in metrics if isinstance(m["value"], (int, float))]
         
-        # Layout
+        fig.add_trace(go.Bar(
+            x=[m["name"] for m in numeric_metrics],
+            y=[m["value"] for m in numeric_metrics],
+            marker_color=[m["color"] for m in numeric_metrics],
+            text=[f'{m["value"]:,}' for m in numeric_metrics],
+            textposition='outside',
+            hovertemplate='%{x}<br>Value: %{text}<extra></extra>'
+        ))
+        
         fig.update_layout(
-            title=f"S&P 500 Index - 1 Year Chart<br><sub style='color:#888'>{data_source}</sub>",
-            xaxis_title="Date",
-            yaxis=dict(title="Price ($)", side="left"),
-            yaxis2=dict(title="Volume", side="right", overlaying="y"),
+            title=f"Form D Filing Statistics<br><sub>Total: {stats.get('total_filings', 0):,} filings</sub>",
+            xaxis_title="Metric",
+            yaxis_title="Count",
             template="plotly_dark",
-            height=600,
-            showlegend=True,
-            hovermode='x unified'
+            height=400,
+            showlegend=False
         )
         
-        print("Chart created successfully!")
         return json.loads(fig.to_json())
         
     except Exception as e:
-        print(f"Error: {e}")
+        print(f"Error in form_d_stats: {e}")
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+@app.get("/security_types")
+def get_security_types():
+    """Get security type distribution chart"""
+    try:
+        # Fetch security type distribution data
+        data = fetch_backend_data("charts/security-type-distribution?metric=count")
+        
+        if not data or not data.get("distribution"):
+            raise HTTPException(status_code=500, detail="No security type data available")
+        
+        distribution = data["distribution"]
+        
+        # Create pie chart
+        fig = go.Figure(data=[go.Pie(
+            labels=[item["name"] for item in distribution],
+            values=[item["value"] for item in distribution],
+            hole=0.4,
+            marker_colors=['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6'][:len(distribution)],
+            textinfo='label+percent',
+            hovertemplate='<b>%{label}</b><br>Filings: %{value}<br>Percentage: %{percent}<extra></extra>'
+        )])
+        
+        fig.update_layout(
+            title="Security Type Distribution<br><sub>Breakdown of Form D filings by security type</sub>",
+            template="plotly_dark",
+            height=400,
+            showlegend=True,
+            legend=dict(orientation="v", yanchor="middle", y=0.5)
+        )
+        
+        return json.loads(fig.to_json())
+        
+    except Exception as e:
+        print(f"Error in security_types: {e}")
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+@app.get("/top_industries") 
+def get_top_industries():
+    """Get top 10 industries chart"""
+    try:
+        data = fetch_backend_data("charts/industry-distribution?metric=count")
+        
+        if not data or not data.get("distribution"):
+            raise HTTPException(status_code=500, detail="No industry data available")
+        
+        distribution = data["distribution"][:10]  # Top 10
+        
+        # Create horizontal bar chart
+        fig = go.Figure(data=[go.Bar(
+            x=[item["value"] for item in distribution],
+            y=[item["name"][:30] + "..." if len(item["name"]) > 30 else item["name"] for item in distribution],
+            orientation='h',
+            marker_color='#3B82F6',
+            text=[f'{item["value"]:,}' for item in distribution],
+            textposition='outside',
+            hovertemplate='<b>%{y}</b><br>Filings: %{x:,}<extra></extra>'
+        )])
+        
+        fig.update_layout(
+            title="Top 10 Industries<br><sub>Most active sectors by filing count</sub>",
+            xaxis_title="Number of Filings",
+            template="plotly_dark",
+            height=400,
+            margin=dict(l=150)  # Left margin for industry names
+        )
+        
+        return json.loads(fig.to_json())
+        
+    except Exception as e:
+        print(f"Error in top_industries: {e}")
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+@app.get("/monthly_activity")
+def get_monthly_activity():
+    """Get monthly filing activity time series"""
+    try:
+        data = fetch_backend_data("charts")
+        
+        if not data or not data.get("time_series"):
+            raise HTTPException(status_code=500, detail="No time series data available")
+        
+        time_series = data["time_series"]
+        
+        fig = go.Figure()
+        
+        # Add traces for each security type
+        fig.add_trace(go.Scatter(
+            x=[item["date"] for item in time_series],
+            y=[item.get("equity_filings", 0) for item in time_series],
+            mode='lines+markers',
+            name='Equity Filings',
+            line=dict(color='#3B82F6', width=3),
+            marker=dict(size=6)
+        ))
+        
+        fig.add_trace(go.Scatter(
+            x=[item["date"] for item in time_series],
+            y=[item.get("debt_filings", 0) for item in time_series], 
+            mode='lines+markers',
+            name='Debt Filings',
+            line=dict(color='#F59E0B', width=3),
+            marker=dict(size=6)
+        ))
+        
+        fig.add_trace(go.Scatter(
+            x=[item["date"] for item in time_series],
+            y=[item.get("fund_filings", 0) for item in time_series],
+            mode='lines+markers', 
+            name='Fund Filings',
+            line=dict(color='#10B981', width=3),
+            marker=dict(size=6)
+        ))
+        
+        fig.update_layout(
+            title="Monthly Filing Activity<br><sub>Form D filings over time by security type</sub>",
+            xaxis_title="Month",
+            yaxis_title="Number of Filings",
+            template="plotly_dark",
+            height=500,
+            hovermode='x unified'
+        )
+        
+        return json.loads(fig.to_json())
+        
+    except Exception as e:
+        print(f"Error in monthly_activity: {e}")
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+@app.get("/top_fundraisers")
+def get_top_fundraisers():
+    """Get top 20 fundraisers chart"""
+    try:
+        data = fetch_backend_data("charts/top-fundraisers?metric=offering_amount")
+        
+        if not data or not data.get("top_fundraisers"):
+            raise HTTPException(status_code=500, detail="No fundraiser data available")
+        
+        fundraisers = data["top_fundraisers"][:20]  # Top 20
+        
+        # Create horizontal bar chart
+        fig = go.Figure(data=[go.Bar(
+            x=[item["amount"] for item in fundraisers],
+            y=[item["company_name"][:40] + "..." if len(item["company_name"]) > 40 else item["company_name"] for item in fundraisers],
+            orientation='h',
+            marker_color=[
+                '#3B82F6' if item["security_type"] == 'Equity' else
+                '#F59E0B' if item["security_type"] == 'Debt' else 
+                '#10B981' for item in fundraisers
+            ],
+            text=[item["formatted_amount"] for item in fundraisers],
+            textposition='outside',
+            hovertemplate='<b>%{y}</b><br>Amount: %{text}<br>Type: %{customdata[0]}<br>Industry: %{customdata[1]}<extra></extra>',
+            customdata=[[item["security_type"], item["industry"]] for item in fundraisers]
+        )])
+        
+        fig.update_layout(
+            title="Top 20 Fundraisers<br><sub>Companies with largest offering amounts</sub>",
+            xaxis_title="Offering Amount ($)",
+            template="plotly_dark",
+            height=600,
+            margin=dict(l=200)  # Left margin for company names
+        )
+        
+        return json.loads(fig.to_json())
+        
+    except Exception as e:
+        print(f"Error in top_fundraisers: {e}")
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+@app.get("/location_distribution")
+def get_location_distribution():
+    """Get geographic distribution of filings"""
+    try:
+        data = fetch_backend_data("charts/location-distribution?metric=count")
+        
+        if not data or not data.get("distribution"):
+            raise HTTPException(status_code=500, detail="No location data available")
+        
+        distribution = data["distribution"][:25]  # Top 25 states
+        
+        # Create choropleth map
+        fig = go.Figure(data=go.Choropleth(
+            locations=[item["name"] for item in distribution],
+            z=[item["value"] for item in distribution],
+            locationmode='USA-states',
+            colorscale='Blues',
+            text=[f'{item["name"]}: {item["value"]:,} filings' for item in distribution],
+            hovertemplate='<b>%{text}</b><extra></extra>',
+            colorbar_title="Number of Filings"
+        ))
+        
+        fig.update_layout(
+            title="Geographic Distribution of Form D Filings<br><sub>Filings by US state</sub>",
+            geo=dict(
+                scope='usa',
+                projection=go.layout.geo.Projection(type='albers usa'),
+                showlakes=True,
+                lakecolor='rgb(255, 255, 255)',
+            ),
+            template="plotly_dark",
+            height=600
+        )
+        
+        return json.loads(fig.to_json())
+        
+    except Exception as e:
+        print(f"Error in location_distribution: {e}")
         return JSONResponse(status_code=500, content={"error": str(e)})
 
 if __name__ == "__main__":
-    print("🚀 Starting Simple S&P 500 Widget")
-    print("📊 Minimal yfinance parameters")
-    print("🔧 Maximum compatibility")
+    print("🚀 Starting Form D Analytics Hub")
+    print(f"📡 Backend: {BACKEND_URL}")
+    print("📊 Widgets: Summary Stats, Security Types, Industries, Time Series")
+    print("🗺️  Geographic: US State Distribution")
+    print("💰 Top Fundraisers: Largest Offering Amounts")
+    print("📈 Three Tabs: Overview, Market Trends, Geographic Analysis")
+    print("=" * 60)
     
     port = int(os.getenv("PORT", 8000))
     uvicorn.run(app, host="0.0.0.0", port=port)
