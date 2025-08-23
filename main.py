@@ -431,9 +431,7 @@ def get_security_types():
                 y=0.5,
                 font=dict(family="Inter", size=12)
             ),
-            # Simplified background styling
-            plot_bgcolor='white',
-            paper_bgcolor='white',
+            # Use default background styling
             font=dict(family="Inter")
         )
         
@@ -457,9 +455,7 @@ def get_security_types():
         )])
         fallback_fig.update_layout(
             title="Security Type Distribution (Fallback)",
-            height=400,
-            plot_bgcolor='white',
-            paper_bgcolor='white'
+            height=400
         )
         print("✅ Fallback chart created successfully")
         return json.loads(fallback_fig.to_json())
@@ -497,9 +493,17 @@ def get_top_industries():
         fig.update_layout(
             title="Top 10 Industries<br><sub>Real Form D data - most active sectors</sub>",
             xaxis_title="Number of Filings",
-            template="plotly_dark",
             height=400,
-            margin=dict(l=150)
+            margin=dict(l=150, r=50, t=80, b=50),
+            xaxis=dict(
+                range=[0, max([item["value"] for item in distribution]) * 1.1],
+                showgrid=True,
+                gridcolor='lightgray'
+            ),
+            yaxis=dict(
+                showgrid=True,
+                gridcolor='lightgray'
+            )
         )
         
         return json.loads(fig.to_json())
@@ -548,8 +552,20 @@ def get_monthly_activity():
         
         fig.update_layout(
             title="Monthly Filing Activity<br><sub>Real Form D data - filings over time</sub>",
-            xaxis_title="Month", yaxis_title="Number of Filings",
-            template="plotly_dark", height=500, hovermode='x unified'
+            xaxis_title="Month", 
+            yaxis_title="Number of Filings",
+            height=500, 
+            hovermode='x unified',
+            margin=dict(l=80, r=50, t=80, b=80),
+            xaxis=dict(
+                showgrid=True,
+                gridcolor='lightgray'
+            ),
+            yaxis=dict(
+                showgrid=True,
+                gridcolor='lightgray',
+                range=[0, max(max(equity_data), max(debt_data), max(fund_data)) * 1.1]
+            )
         )
         
         return json.loads(fig.to_json())
@@ -595,9 +611,17 @@ def get_top_fundraisers():
         fig.update_layout(
             title="Top 20 Fundraisers<br><sub>Real Form D data - largest offering amounts</sub>",
             xaxis_title="Offering Amount ($)",
-            template="plotly_dark",
             height=600,
-            margin=dict(l=200)
+            margin=dict(l=200, r=50, t=80, b=80),
+            xaxis=dict(
+                range=[0, max([item["amount"] for item in fundraisers]) * 1.1],
+                showgrid=True,
+                gridcolor='lightgray'
+            ),
+            yaxis=dict(
+                showgrid=True,
+                gridcolor='lightgray'
+            )
         )
         
         return json.loads(fig.to_json())
@@ -644,8 +668,8 @@ def get_location_distribution():
                 showlakes=True,
                 lakecolor='rgb(255, 255, 255)',
             ),
-            template="plotly_dark",
-            height=600
+            height=600,
+            margin=dict(l=50, r=50, t=80, b=50)
         )
         
         return json.loads(fig.to_json())
