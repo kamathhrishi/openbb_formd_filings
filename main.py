@@ -412,16 +412,14 @@ def get_security_types():
             marker_colors=colors[:len(final_data)],
             textinfo='label+percent',
             textposition='auto',
-            hovertemplate='<b>%{label}</b><br>Filings: %{value:,}<br>Percentage: %{percent}<extra></extra>',
-            # Add data labels inside slices like HTML dashboard
-            textfont=dict(size=12, family="Inter", color="white")
+            hovertemplate='<b>%{label}</b><br>Filings: %{value:,}<br>Percentage: %{percent}<extra></extra>'
         )])
         
         fig.update_layout(
             title=dict(
                 text=f"Security Type Distribution<br><sub style='color:#666'>{chart_title}</sub>",
                 x=0.5,
-                font=dict(size=16, family="Inter", color="#333")
+                font=dict(size=16)
             ),
             height=400,
             showlegend=True,
@@ -429,10 +427,8 @@ def get_security_types():
                 orientation="v", 
                 yanchor="middle", 
                 y=0.5,
-                font=dict(family="Inter", size=12)
-            ),
-            # Use default background styling
-            font=dict(family="Inter")
+                font=dict(size=12)
+            )
         )
         
         print("✅ Chart created successfully")
@@ -499,13 +495,7 @@ def get_top_industries():
             height=400,
             margin=dict(l=150, r=50, t=80, b=50),
             xaxis=dict(
-                range=[0, max([item["value"] for item in distribution]) * 1.1],
-                showgrid=True,
-                gridcolor='lightgray'
-            ),
-            yaxis=dict(
-                showgrid=True,
-                gridcolor='lightgray'
+                range=[0, max([item["value"] for item in distribution]) * 1.1]
             )
         )
         
@@ -560,13 +550,7 @@ def get_monthly_activity():
             height=500, 
             hovermode='x unified',
             margin=dict(l=80, r=50, t=80, b=80),
-            xaxis=dict(
-                showgrid=True,
-                gridcolor='lightgray'
-            ),
             yaxis=dict(
-                showgrid=True,
-                gridcolor='lightgray',
                 range=[0, max(max(equity_data), max(debt_data), max(fund_data)) * 1.1]
             )
         )
@@ -617,13 +601,7 @@ def get_top_fundraisers():
             height=600,
             margin=dict(l=200, r=50, t=80, b=80),
             xaxis=dict(
-                range=[0, max([item["amount"] for item in fundraisers]) * 1.1],
-                showgrid=True,
-                gridcolor='lightgray'
-            ),
-            yaxis=dict(
-                showgrid=True,
-                gridcolor='lightgray'
+                range=[0, max([item["amount"] for item in fundraisers]) * 1.1]
             )
         )
         
