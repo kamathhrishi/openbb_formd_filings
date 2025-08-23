@@ -419,7 +419,7 @@ def get_security_types():
             title=dict(
                 text=f"Security Type Distribution<br><sub style='color:#666'>{chart_title}</sub>",
                 x=0.5,
-                font=dict(size=16)
+                font=dict(size=16, color='white')
             ),
             height=400,
             showlegend=True,
@@ -427,10 +427,12 @@ def get_security_types():
                 orientation="v", 
                 yanchor="middle", 
                 y=0.5,
-                font=dict(size=12)
+                font=dict(size=12, color='white')
             ),
             plot_bgcolor='rgba(0,0,0,0)',
-            paper_bgcolor='rgba(0,0,0,0)'
+            paper_bgcolor='rgba(0,0,0,0)',
+            xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+            yaxis=dict(showgrid=False, zeroline=False, showticklabels=False)
         )
         
         print("✅ Chart created successfully")
@@ -455,7 +457,8 @@ def get_security_types():
             title="Security Type Distribution (Fallback)",
             height=400,
             plot_bgcolor='rgba(0,0,0,0)',
-            paper_bgcolor='rgba(0,0,0,0)'
+            paper_bgcolor='rgba(0,0,0,0)',
+            title_font_color='white'
         )
         print("✅ Fallback chart created successfully")
         return json.loads(fallback_fig.to_json())
@@ -494,15 +497,28 @@ def get_top_industries():
         )])
         
         fig.update_layout(
-            title="Top 10 Industries<br><sub>Real Form D data - most active sectors</sub>",
+            title=dict(
+                text=f"Top 10 Industries<br><sub>Real Form D data - most active sectors</sub>",
+                x=0.5,
+                font=dict(size=16, color='white')
+            ),
             xaxis_title="Number of Filings",
             height=400,
             margin=dict(l=150, r=50, t=80, b=50),
             xaxis=dict(
-                range=[0, max([item["value"] for item in distribution]) * 1.1]
+                range=[0, max([item["value"] for item in distribution]) * 1.1],
+                title_font_color='white',
+                tickfont_color='white',
+                gridcolor='rgba(255,255,255,0.1)'
+            ),
+            yaxis=dict(
+                title_font_color='white',
+                tickfont_color='white',
+                gridcolor='rgba(255,255,255,0.1)'
             ),
             plot_bgcolor='rgba(0,0,0,0)',
-            paper_bgcolor='rgba(0,0,0,0)'
+            paper_bgcolor='rgba(0,0,0,0)',
+            title_font_color='white'
         )
         
         return json.loads(fig.to_json())
@@ -550,17 +566,30 @@ def get_monthly_activity():
         ))
         
         fig.update_layout(
-            title="Monthly Filing Activity<br><sub>Real Form D data - filings over time</sub>",
+            title=dict(
+                text=f"Monthly Filing Activity<br><sub>Real Form D data - filings over time</sub>",
+                x=0.5,
+                font=dict(size=16, color='white')
+            ),
             xaxis_title="Month", 
             yaxis_title="Number of Filings",
             height=500, 
             hovermode='x unified',
             margin=dict(l=80, r=50, t=80, b=80),
+            xaxis=dict(
+                title_font_color='white',
+                tickfont_color='white',
+                gridcolor='rgba(255,255,255,0.1)'
+            ),
             yaxis=dict(
-                range=[0, max(max(equity_data), max(debt_data), max(fund_data)) * 1.1]
+                range=[0, max(max(equity_data), max(debt_data), max(fund_data)) * 1.1],
+                title_font_color='white',
+                tickfont_color='white',
+                gridcolor='rgba(255,255,255,0.1)'
             ),
             plot_bgcolor='rgba(0,0,0,0)',
-            paper_bgcolor='rgba(0,0,0,0)'
+            paper_bgcolor='rgba(0,0,0,0)',
+            title_font_color='white'
         )
         
         return json.loads(fig.to_json())
@@ -604,15 +633,28 @@ def get_top_fundraisers():
         )])
         
         fig.update_layout(
-            title="Top 20 Fundraisers<br><sub>Real Form D data - largest offering amounts</sub>",
+            title=dict(
+                text=f"Top 20 Fundraisers<br><sub>Real Form D data - largest offering amounts</sub>",
+                x=0.5,
+                font=dict(size=16, color='white')
+            ),
             xaxis_title="Offering Amount ($)",
             height=600,
             margin=dict(l=200, r=50, t=80, b=80),
             xaxis=dict(
-                range=[0, max([item["amount"] for item in fundraisers]) * 1.1]
+                range=[0, max([item["amount"] for item in fundraisers]) * 1.1],
+                title_font_color='white',
+                tickfont_color='white',
+                gridcolor='rgba(255,255,255,0.1)'
+            ),
+            yaxis=dict(
+                title_font_color='white',
+                tickfont_color='white',
+                gridcolor='rgba(255,255,255,0.1)'
             ),
             plot_bgcolor='rgba(0,0,0,0)',
-            paper_bgcolor='rgba(0,0,0,0)'
+            paper_bgcolor='rgba(0,0,0,0)',
+            title_font_color='white'
         )
         
         return json.loads(fig.to_json())
@@ -652,17 +694,29 @@ def get_location_distribution():
         ))
         
         fig.update_layout(
-            title="Geographic Distribution<br><sub>Real Form D data - filings by US state</sub>",
+            title=dict(
+                text=f"Geographic Distribution<br><sub>Real Form D data - filings by US state</sub>",
+                x=0.5,
+                font=dict(size=16, color='white')
+            ),
             geo=dict(
                 scope='usa',
                 projection=go.layout.geo.Projection(type='albers usa'),
                 showlakes=True,
                 lakecolor='rgb(255, 255, 255)',
+                bgcolor='rgba(0,0,0,0)',
+                landcolor='rgba(255,255,255,0.1)',
+                coastlinecolor='rgba(255,255,255,0.3)',
+                showland=True,
+                showcoastlines=True,
+                showocean=True,
+                oceancolor='rgba(0,0,0,0)'
             ),
             height=600,
             margin=dict(l=50, r=50, t=80, b=50),
             plot_bgcolor='rgba(0,0,0,0)',
-            paper_bgcolor='rgba(0,0,0,0)'
+            paper_bgcolor='rgba(0,0,0,0)',
+            title_font_color='white'
         )
         
         return json.loads(fig.to_json())
