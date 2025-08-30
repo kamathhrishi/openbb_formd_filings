@@ -182,35 +182,7 @@ def get_form_d_intro():
         
         markdown_content = f"""# Form D Filings Dashboard
 
-## SEC Private Market Analytics & Intelligence
-
-Welcome to **The Marketcast** - your comprehensive source for SEC Form D filing analytics. This dashboard provides real-time insights into private equity and debt fundraising activity across the United States.
-
-### What are Form D Filings?
-
-**Form D** is a brief notice filing that companies must submit to the SEC when they sell securities under certain exemptions from registration. These filings provide a window into private market activity including:
-
-- **Private Equity Raises** - Venture capital, growth equity, and buyout funds
-- **Debt Offerings** - Private debt, mezzanine financing, and credit facilities  
-- **Investment Funds** - Hedge funds, private equity funds, and real estate funds
-- **Startup Funding** - Seed rounds, Series A/B/C, and growth financing
-
-### Current Market Snapshot
-
-- **{total_filings}** total filings tracked
-- **{total_raised}** in total offering amounts
-- **Real-time data** updated from SEC EDGAR database
-- **Advanced analytics** with geographic and industry breakdowns
-
-### Dashboard Navigation
-
-**Overview Tab**: Latest filings, security type breakdown, and top industries  
-**Market Trends**: Monthly activity patterns and top fundraisers  
-**Geographic Analysis**: Regional fundraising activity across US states
-
----
-
-*Data powered by The Marketcast backend • Updated in real-time from SEC filings*
+Real-time analytics of SEC Form D filings - tracking private equity, debt, and fund offerings across the US.
 """
         
         return markdown_content
@@ -301,11 +273,24 @@ def get_latest_filings():
         return [{"error": str(e)}]
 
 @app.get("/security_types")
-def get_security_types():
-    """Get security type distribution chart"""
+def get_security_types(year: str = None, metric: str = "count"):
+    """Get security type distribution chart with filtering options"""
     try:
-        print("🔍 Fetching security type distribution data...")
-        data = fetch_backend_data("charts/security-type-distribution?metric=count")
+        print(f"🔍 Fetching security type distribution data... (year: {year}, metric: {metric})")
+        
+        # Build query parameters
+        params = []
+        if year and year != "all":
+            params.append(f"year={year}")
+        if metric and metric != "count":
+            params.append(f"metric={metric}")
+        
+        query_string = "&".join(params)
+        endpoint = f"charts/security-type-distribution?metric={metric}"
+        if query_string:
+            endpoint += f"&{query_string}"
+        
+        data = fetch_backend_data(endpoint)
         
         if not data or not data.get("distribution"):
             distribution = [
@@ -333,7 +318,19 @@ def get_security_types():
         
         final_data = top_4
         colors = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6']
-        chart_title = f"Total: {total_value:,}"
+        # Add filtering context to title
+        filter_context = []
+        if year and year != "all":
+            filter_context.append(f"Year: {year}")
+        if metric == "amount_sold":
+            filter_context.append("by Amount Sold")
+        elif metric == "offering_amount":
+            filter_context.append("by Offering Amount")
+        else:
+            filter_context.append("by Count")
+        
+        filter_text = f" ({', '.join(filter_context)})" if filter_context else ""
+        chart_title = f"Total: {total_value:,}{filter_text}"
         
         labels = [str(item["name"]) for item in final_data]
         values = [float(item["value"]) for item in final_data]
@@ -397,10 +394,22 @@ def get_security_types():
         return json.loads(fallback_fig.to_json())
 
 @app.get("/top_industries") 
-def get_top_industries():
-    """Get top 10 industries chart"""
+def get_top_industries(year: str = None, metric: str = "count"):
+    """Get top 10 industries chart with filtering options"""
     try:
-        data = fetch_backend_data("charts/industry-distribution?metric=count")
+        # Build query parameters
+        params = []
+        if year and year != "all":
+            params.append(f"year={year}")
+        if metric and metric != "count":
+            params.append(f"metric={metric}")
+        
+        query_string = "&".join(params)
+        endpoint = f"charts/industry-distribution?metric={metric}"
+        if query_string:
+            endpoint += f"&{query_string}"
+        
+        data = fetch_backend_data(endpoint)
         
         if not data or not data.get("distribution"):
             distribution = [
@@ -426,9 +435,23 @@ def get_top_industries():
             hovertemplate='<b>%{y}</b><br>Filings: %{x:,}<extra></extra>'
         )])
         
+        # Add filtering context to title
+        filter_context = []
+        if year and year != "all":
+            filter_context.append(f"Year: {year}")
+        if metric == "amount_sold":
+            filter_context.append("by Amount Sold")
+        elif metric == "offering_amount":
+            filter_context.append("by Offering Amount")
+        else:
+            filter_context.append("by Count")
+        
+        filter_text = f" ({', '.join(filter_context)})" if filter_context else ""
+        subtitle = f"Real Form D data - most active sectors{filter_text}"
+        
         fig.update_layout(
             title=dict(
-                text="Top 10 Industries<br><sub style='color:white'>Real Form D data - most active sectors</sub>",
+                text=f"Top 10 Industries<br><sub style='color:white'>{subtitle}</sub>",
                 x=0.5,
                 font=dict(size=16, color='white')
             ),
@@ -465,48 +488,90 @@ def get_top_industries():
         return {"error": str(e)}
 
 @app.get("/monthly_activity")
-def get_monthly_activity():
-    """Get monthly filing activity time series"""
+def get_monthly_activity(metric: str = "count"):
+    """Get monthly filing activity time series with metric selection"""
     try:
-        data = fetch_backend_data("charts")
+        # Use different endpoint based on metric
+        if metric == "offering_amount":
+            endpoint = "charts/amount-raised-timeseries?metric=offering_amount"
+        elif metric == "amount_sold":
+            endpoint = "charts/amount-raised-timeseries?metric=amount_sold"
+        else:
+            endpoint = "charts"
+        
+        data = fetch_backend_data(endpoint)
         
         if not data or not data.get("time_series"):
             months = ["2024-01", "2024-02", "2024-03", "2024-04", "2024-05", "2024-06"]
-            equity_data = [120, 135, 110, 145, 160, 155]
-            debt_data = [45, 50, 40, 55, 60, 50]
-            fund_data = [25, 30, 20, 35, 40, 35]
+            if metric in ["offering_amount", "amount_sold"]:
+                equity_data = [500000000, 650000000, 450000000, 720000000, 800000000, 750000000]
+                debt_data = [200000000, 250000000, 180000000, 300000000, 320000000, 280000000]
+                fund_data = [150000000, 180000000, 120000000, 220000000, 240000000, 200000000]
+            else:
+                equity_data = [120, 135, 110, 145, 160, 155]
+                debt_data = [45, 50, 40, 55, 60, 50]
+                fund_data = [25, 30, 20, 35, 40, 35]
         else:
             time_series = data["time_series"]
             months = [item["date"] for item in time_series]
-            equity_data = [item.get("equity_filings", 0) for item in time_series]
-            debt_data = [item.get("debt_filings", 0) for item in time_series]
-            fund_data = [item.get("fund_filings", 0) for item in time_series]
+            if metric == "offering_amount":
+                equity_data = [item.get("equity_amount", 0) for item in time_series]
+                debt_data = [item.get("debt_amount", 0) for item in time_series]
+                fund_data = [item.get("fund_amount", 0) for item in time_series]
+            elif metric == "amount_sold":
+                equity_data = [item.get("equity_amount", 0) for item in time_series]
+                debt_data = [item.get("debt_amount", 0) for item in time_series]
+                fund_data = [item.get("fund_amount", 0) for item in time_series]
+            else:
+                equity_data = [item.get("equity_filings", 0) for item in time_series]
+                debt_data = [item.get("debt_filings", 0) for item in time_series]
+                fund_data = [item.get("fund_filings", 0) for item in time_series]
         
         fig = go.Figure()
         
+        # Update trace names and y-axis based on metric
+        if metric in ["offering_amount", "amount_sold"]:
+            equity_name = 'Equity'
+            debt_name = 'Debt'  
+            fund_name = 'Fund'
+            y_title = "Amount ($)"
+        else:
+            equity_name = 'Equity Filings'
+            debt_name = 'Debt Filings'
+            fund_name = 'Fund Filings' 
+            y_title = "Number of Filings"
+        
         fig.add_trace(go.Scatter(
-            x=months, y=equity_data, mode='lines+markers', name='Equity Filings',
+            x=months, y=equity_data, mode='lines+markers', name=equity_name,
             line=dict(color='#3B82F6', width=3), marker=dict(size=6)
         ))
         
         fig.add_trace(go.Scatter(
-            x=months, y=debt_data, mode='lines+markers', name='Debt Filings',
+            x=months, y=debt_data, mode='lines+markers', name=debt_name,
             line=dict(color='#F59E0B', width=3), marker=dict(size=6)
         ))
         
         fig.add_trace(go.Scatter(
-            x=months, y=fund_data, mode='lines+markers', name='Fund Filings',
+            x=months, y=fund_data, mode='lines+markers', name=fund_name,
             line=dict(color='#10B981', width=3), marker=dict(size=6)
         ))
         
+        # Add filtering context to title
+        if metric == "offering_amount":
+            subtitle = "Real Form D data - offering amounts over time"
+        elif metric == "amount_sold":
+            subtitle = "Real Form D data - amounts sold over time"
+        else:
+            subtitle = "Real Form D data - filings over time"
+        
         fig.update_layout(
             title=dict(
-                text="Monthly Filing Activity<br><sub style='color:white'>Real Form D data - filings over time</sub>",
+                text=f"Monthly Filing Activity<br><sub style='color:white'>{subtitle}</sub>",
                 x=0.5,
                 font=dict(size=16, color='white')
             ),
             xaxis_title="Month", 
-            yaxis_title="Number of Filings",
+            yaxis_title=y_title,
             height=500, 
             hovermode='x unified',
             margin=dict(l=80, r=50, t=80, b=80),
@@ -543,10 +608,24 @@ def get_monthly_activity():
         return {"error": str(e)}
 
 @app.get("/top_fundraisers")
-def get_top_fundraisers():
-    """Get top 20 fundraisers chart"""
+def get_top_fundraisers(year: str = None, industry: str = None, metric: str = "offering_amount"):
+    """Get top 20 fundraisers chart with filtering options"""
     try:
-        data = fetch_backend_data("charts/top-fundraisers?metric=offering_amount")
+        # Build query parameters
+        params = []
+        if year and year != "all":
+            params.append(f"year={year}")
+        if industry and industry != "all":
+            params.append(f"industry={industry}")
+        if metric and metric != "offering_amount":
+            params.append(f"metric={metric}")
+        
+        query_string = "&".join(params)
+        endpoint = f"charts/top-fundraisers?metric={metric}"
+        if query_string:
+            endpoint += f"&{query_string}"
+        
+        data = fetch_backend_data(endpoint)
         
         if not data or not data.get("top_fundraisers"):
             fundraisers = [
@@ -574,9 +653,23 @@ def get_top_fundraisers():
             customdata=[item.get("security_type", "Unknown") for item in fundraisers]
         )])
         
+        # Add filtering context to title
+        filter_context = []
+        if year and year != "all":
+            filter_context.append(f"Year: {year}")
+        if industry and industry != "all":
+            filter_context.append(f"Industry: {industry}")
+        if metric == "amount_sold":
+            filter_context.append("by Amount Sold")
+        else:
+            filter_context.append("by Offering Amount")
+        
+        filter_text = f" ({', '.join(filter_context)})" if filter_context else ""
+        subtitle = f"Real Form D data - largest offering amounts{filter_text}"
+        
         fig.update_layout(
             title=dict(
-                text="Top 20 Fundraisers<br><sub style='color:white'>Real Form D data - largest offering amounts</sub>",
+                text=f"Top 20 Fundraisers<br><sub style='color:white'>{subtitle}</sub>",
                 x=0.5,
                 font=dict(size=16, color='white')
             ),
@@ -613,10 +706,22 @@ def get_top_fundraisers():
         return {"error": str(e)}
 
 @app.get("/location_distribution")
-def get_location_distribution():
-    """Get geographic distribution of filings"""
+def get_location_distribution(year: str = None, metric: str = "count"):
+    """Get geographic distribution of filings with filtering options"""
     try:
-        data = fetch_backend_data("charts/location-distribution?metric=count")
+        # Build query parameters
+        params = []
+        if year and year != "all":
+            params.append(f"year={year}")
+        if metric and metric != "count":
+            params.append(f"metric={metric}")
+        
+        query_string = "&".join(params)
+        endpoint = f"charts/location-distribution?metric={metric}"
+        if query_string:
+            endpoint += f"&{query_string}"
+        
+        data = fetch_backend_data(endpoint)
         
         if not data or not data.get("distribution"):
             distribution = [
@@ -642,9 +747,23 @@ def get_location_distribution():
             )
         ))
         
+        # Add filtering context to title
+        filter_context = []
+        if year and year != "all":
+            filter_context.append(f"Year: {year}")
+        if metric == "amount_sold":
+            filter_context.append("by Amount Sold")
+        elif metric == "offering_amount":
+            filter_context.append("by Offering Amount")
+        else:
+            filter_context.append("by Count")
+        
+        filter_text = f" ({', '.join(filter_context)})" if filter_context else ""
+        subtitle = f"Real Form D data - filings by US state{filter_text}"
+        
         fig.update_layout(
             title=dict(
-                text="Geographic Distribution<br><sub style='color:white'>Real Form D data - filings by US state</sub>",
+                text=f"Geographic Distribution<br><sub style='color:white'>{subtitle}</sub>",
                 x=0.5,
                 font=dict(size=16, color='white')
             ),
@@ -702,3 +821,4 @@ if __name__ == "__main__":
     print(f"📊 Widgets: http://localhost:{port}/widgets.json")
     print(f"📱 Apps: http://localhost:{port}/apps.json")
     print("=" * 60)
+    
