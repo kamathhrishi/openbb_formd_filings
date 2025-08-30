@@ -85,12 +85,12 @@ def get_widgets():
             "endpoint": "security_types",
             "gridData": {"w": 600, "h": 400},
             "source": "The Marketcast",
-            "controls": [
+            "params": [
                 {
-                    "name": "year",
-                    "type": "select",
+                    "paramName": "year",
                     "label": "Year",
-                    "default": "all",
+                    "type": "text",
+                    "value": "all",
                     "options": [
                         {"label": "All Years", "value": "all"},
                         {"label": "2024", "value": "2024"},
@@ -100,10 +100,10 @@ def get_widgets():
                     ]
                 },
                 {
-                    "name": "metric",
-                    "type": "select", 
+                    "paramName": "metric",
                     "label": "Metric",
-                    "default": "count",
+                    "type": "text",
+                    "value": "count",
                     "options": [
                         {"label": "Filing Count", "value": "count"},
                         {"label": "Offering Amount", "value": "offering_amount"},
@@ -120,12 +120,12 @@ def get_widgets():
             "endpoint": "top_industries",
             "gridData": {"w": 600, "h": 400},
             "source": "The Marketcast",
-            "controls": [
+            "params": [
                 {
-                    "name": "year",
-                    "type": "select",
+                    "paramName": "year",
                     "label": "Year",
-                    "default": "all",
+                    "type": "text",
+                    "value": "all",
                     "options": [
                         {"label": "All Years", "value": "all"},
                         {"label": "2024", "value": "2024"},
@@ -135,10 +135,10 @@ def get_widgets():
                     ]
                 },
                 {
-                    "name": "metric",
-                    "type": "select", 
+                    "paramName": "metric",
                     "label": "Metric",
-                    "default": "count",
+                    "type": "text",
+                    "value": "count",
                     "options": [
                         {"label": "Filing Count", "value": "count"},
                         {"label": "Offering Amount", "value": "offering_amount"},
@@ -155,12 +155,12 @@ def get_widgets():
             "endpoint": "monthly_activity", 
             "gridData": {"w": 1200, "h": 500},
             "source": "The Marketcast",
-            "controls": [
+            "params": [
                 {
-                    "name": "metric",
-                    "type": "select", 
+                    "paramName": "metric",
                     "label": "Metric",
-                    "default": "count",
+                    "type": "text",
+                    "value": "count",
                     "options": [
                         {"label": "Filing Count", "value": "count"},
                         {"label": "Offering Amount", "value": "offering_amount"},
@@ -177,12 +177,12 @@ def get_widgets():
             "endpoint": "top_fundraisers",
             "gridData": {"w": 1200, "h": 600},
             "source": "The Marketcast",
-            "controls": [
+            "params": [
                 {
-                    "name": "year",
-                    "type": "select",
+                    "paramName": "year",
                     "label": "Year",
-                    "default": "all",
+                    "type": "text",
+                    "value": "all",
                     "options": [
                         {"label": "All Years", "value": "all"},
                         {"label": "2024", "value": "2024"},
@@ -192,10 +192,10 @@ def get_widgets():
                     ]
                 },
                 {
-                    "name": "industry",
-                    "type": "select",
+                    "paramName": "industry",
                     "label": "Industry",
-                    "default": "all",
+                    "type": "text",
+                    "value": "all",
                     "options": [
                         {"label": "All Industries", "value": "all"},
                         {"label": "Technology", "value": "Technology"},
@@ -206,10 +206,10 @@ def get_widgets():
                     ]
                 },
                 {
-                    "name": "metric",
-                    "type": "select", 
+                    "paramName": "metric",
                     "label": "Metric",
-                    "default": "offering_amount",
+                    "type": "text",
+                    "value": "offering_amount",
                     "options": [
                         {"label": "Offering Amount", "value": "offering_amount"},
                         {"label": "Amount Sold", "value": "amount_sold"}
@@ -225,12 +225,12 @@ def get_widgets():
             "endpoint": "location_distribution",
             "gridData": {"w": 1200, "h": 600},
             "source": "The Marketcast",
-            "controls": [
+            "params": [
                 {
-                    "name": "year",
-                    "type": "select",
+                    "paramName": "year",
                     "label": "Year",
-                    "default": "all",
+                    "type": "text",
+                    "value": "all",
                     "options": [
                         {"label": "All Years", "value": "all"},
                         {"label": "2024", "value": "2024"},
@@ -240,10 +240,10 @@ def get_widgets():
                     ]
                 },
                 {
-                    "name": "metric",
-                    "type": "select", 
+                    "paramName": "metric",
                     "label": "Metric",
-                    "default": "count",
+                    "type": "text",
+                    "value": "count",
                     "options": [
                         {"label": "Filing Count", "value": "count"},
                         {"label": "Offering Amount", "value": "offering_amount"},
