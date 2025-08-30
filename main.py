@@ -93,10 +93,22 @@ def get_widgets():
                     "value": "all",
                     "options": [
                         {"label": "All Years", "value": "all"},
+                        {"label": "2025", "value": "2025"},
                         {"label": "2024", "value": "2024"},
                         {"label": "2023", "value": "2023"},
                         {"label": "2022", "value": "2022"},
-                        {"label": "2021", "value": "2021"}
+                        {"label": "2021", "value": "2021"},
+                        {"label": "2020", "value": "2020"},
+                        {"label": "2019", "value": "2019"},
+                        {"label": "2018", "value": "2018"},
+                        {"label": "2017", "value": "2017"},
+                        {"label": "2016", "value": "2016"},
+                        {"label": "2015", "value": "2015"},
+                        {"label": "2014", "value": "2014"},
+                        {"label": "2013", "value": "2013"},
+                        {"label": "2012", "value": "2012"},
+                        {"label": "2011", "value": "2011"},
+                        {"label": "2010", "value": "2010"}
                     ]
                 },
                 {
@@ -128,10 +140,22 @@ def get_widgets():
                     "value": "all",
                     "options": [
                         {"label": "All Years", "value": "all"},
+                        {"label": "2025", "value": "2025"},
                         {"label": "2024", "value": "2024"},
                         {"label": "2023", "value": "2023"},
                         {"label": "2022", "value": "2022"},
-                        {"label": "2021", "value": "2021"}
+                        {"label": "2021", "value": "2021"},
+                        {"label": "2020", "value": "2020"},
+                        {"label": "2019", "value": "2019"},
+                        {"label": "2018", "value": "2018"},
+                        {"label": "2017", "value": "2017"},
+                        {"label": "2016", "value": "2016"},
+                        {"label": "2015", "value": "2015"},
+                        {"label": "2014", "value": "2014"},
+                        {"label": "2013", "value": "2013"},
+                        {"label": "2012", "value": "2012"},
+                        {"label": "2011", "value": "2011"},
+                        {"label": "2010", "value": "2010"}
                     ]
                 },
                 {
@@ -166,6 +190,24 @@ def get_widgets():
                         {"label": "Offering Amount", "value": "offering_amount"},
                         {"label": "Amount Sold", "value": "amount_sold"}
                     ]
+                },
+                {
+                    "paramName": "industry",
+                    "label": "Industry",
+                    "type": "text",
+                    "value": "all",
+                    "options": [
+                        {"label": "All Industries", "value": "all"},
+                        {"label": "Technology", "value": "Technology"},
+                        {"label": "Healthcare", "value": "Healthcare"},
+                        {"label": "Financial Services", "value": "Financial Services"},
+                        {"label": "Real Estate", "value": "Real Estate"},
+                        {"label": "Energy", "value": "Energy"},
+                        {"label": "Manufacturing", "value": "Manufacturing"},
+                        {"label": "Media", "value": "Media"},
+                        {"label": "Consumer Services", "value": "Consumer Services"},
+                        {"label": "Transportation", "value": "Transportation"}
+                    ]
                 }
             ]
         },
@@ -185,10 +227,22 @@ def get_widgets():
                     "value": "all",
                     "options": [
                         {"label": "All Years", "value": "all"},
+                        {"label": "2025", "value": "2025"},
                         {"label": "2024", "value": "2024"},
                         {"label": "2023", "value": "2023"},
                         {"label": "2022", "value": "2022"},
-                        {"label": "2021", "value": "2021"}
+                        {"label": "2021", "value": "2021"},
+                        {"label": "2020", "value": "2020"},
+                        {"label": "2019", "value": "2019"},
+                        {"label": "2018", "value": "2018"},
+                        {"label": "2017", "value": "2017"},
+                        {"label": "2016", "value": "2016"},
+                        {"label": "2015", "value": "2015"},
+                        {"label": "2014", "value": "2014"},
+                        {"label": "2013", "value": "2013"},
+                        {"label": "2012", "value": "2012"},
+                        {"label": "2011", "value": "2011"},
+                        {"label": "2010", "value": "2010"}
                     ]
                 },
                 {
@@ -233,10 +287,22 @@ def get_widgets():
                     "value": "all",
                     "options": [
                         {"label": "All Years", "value": "all"},
+                        {"label": "2025", "value": "2025"},
                         {"label": "2024", "value": "2024"},
                         {"label": "2023", "value": "2023"},
                         {"label": "2022", "value": "2022"},
-                        {"label": "2021", "value": "2021"}
+                        {"label": "2021", "value": "2021"},
+                        {"label": "2020", "value": "2020"},
+                        {"label": "2019", "value": "2019"},
+                        {"label": "2018", "value": "2018"},
+                        {"label": "2017", "value": "2017"},
+                        {"label": "2016", "value": "2016"},
+                        {"label": "2015", "value": "2015"},
+                        {"label": "2014", "value": "2014"},
+                        {"label": "2013", "value": "2013"},
+                        {"label": "2012", "value": "2012"},
+                        {"label": "2011", "value": "2011"},
+                        {"label": "2010", "value": "2010"}
                     ]
                 },
                 {
@@ -618,9 +684,14 @@ def get_top_industries(year: str = None, metric: str = "count"):
         return {"error": str(e)}
 
 @app.get("/monthly_activity")
-def get_monthly_activity(metric: str = "count"):
-    """Get monthly filing activity time series with metric selection"""
+def get_monthly_activity(metric: str = "count", industry: str = "all"):
+    """Get monthly filing activity time series with metric and industry selection"""
     try:
+        # Build query parameters
+        params = []
+        if industry and industry != "all":
+            params.append(f"industry={industry}")
+        
         # Use different endpoint based on metric
         if metric == "offering_amount":
             endpoint = "charts/amount-raised-timeseries?metric=offering_amount"
@@ -628,6 +699,14 @@ def get_monthly_activity(metric: str = "count"):
             endpoint = "charts/amount-raised-timeseries?metric=amount_sold"
         else:
             endpoint = "charts"
+        
+        # Add industry filter if specified
+        if params:
+            query_string = "&".join(params)
+            if "?" in endpoint:
+                endpoint += f"&{query_string}"
+            else:
+                endpoint += f"?{query_string}"
         
         data = fetch_backend_data(endpoint)
         
@@ -687,12 +766,19 @@ def get_monthly_activity(metric: str = "count"):
         ))
         
         # Add filtering context to title
+        filter_parts = []
+        if industry and industry != "all":
+            filter_parts.append(f"Industry: {industry}")
+        
         if metric == "offering_amount":
-            subtitle = "Real Form D data - offering amounts over time"
+            base_subtitle = "offering amounts over time"
         elif metric == "amount_sold":
-            subtitle = "Real Form D data - amounts sold over time"
+            base_subtitle = "amounts sold over time"
         else:
-            subtitle = "Real Form D data - filings over time"
+            base_subtitle = "filings over time"
+        
+        filter_text = f" ({', '.join(filter_parts)})" if filter_parts else ""
+        subtitle = f"Real Form D data - {base_subtitle}{filter_text}"
         
         fig.update_layout(
             title=dict(
@@ -929,6 +1015,47 @@ def get_location_distribution(year: str = None, metric: str = "count"):
     except Exception as e:
         print(f"Error in location_distribution: {e}")
         return {"error": str(e)}
+
+@app.get("/api/available_years")
+def get_available_years():
+    """Get available years from the backend for dynamic filtering"""
+    try:
+        # Fetch available years from backend
+        data = fetch_backend_data("charts/security-type-distribution?metric=count")
+        
+        if data and data.get("available_years"):
+            years = data["available_years"]
+            # Format for dropdown options
+            options = [{"label": "All Years", "value": "all"}]
+            for year in sorted(years, reverse=True):
+                options.append({"label": str(year), "value": str(year)})
+            return {"years": options}
+        else:
+            # Fallback to static years if backend doesn't provide them
+            return {
+                "years": [
+                    {"label": "All Years", "value": "all"},
+                    {"label": "2025", "value": "2025"},
+                    {"label": "2024", "value": "2024"},
+                    {"label": "2023", "value": "2023"},
+                    {"label": "2022", "value": "2022"},
+                    {"label": "2021", "value": "2021"},
+                    {"label": "2020", "value": "2020"},
+                    {"label": "2019", "value": "2019"},
+                    {"label": "2018", "value": "2018"},
+                    {"label": "2017", "value": "2017"},
+                    {"label": "2016", "value": "2016"},
+                    {"label": "2015", "value": "2015"},
+                    {"label": "2014", "value": "2014"},
+                    {"label": "2013", "value": "2013"},
+                    {"label": "2012", "value": "2012"},
+                    {"label": "2011", "value": "2011"},
+                    {"label": "2010", "value": "2010"}
+                ]
+            }
+    except Exception as e:
+        print(f"Error getting available years: {e}")
+        return {"years": [{"label": "All Years", "value": "all"}]}
 
 if __name__ == "__main__":
     print("🚀 Starting Form D Analytics Hub")
