@@ -84,7 +84,33 @@ def get_widgets():
             "type": "chart",
             "endpoint": "security_types",
             "gridData": {"w": 600, "h": 400},
-            "source": "The Marketcast"
+            "source": "The Marketcast",
+            "controls": [
+                {
+                    "name": "year",
+                    "type": "select",
+                    "label": "Year",
+                    "default": "all",
+                    "options": [
+                        {"label": "All Years", "value": "all"},
+                        {"label": "2024", "value": "2024"},
+                        {"label": "2023", "value": "2023"},
+                        {"label": "2022", "value": "2022"},
+                        {"label": "2021", "value": "2021"}
+                    ]
+                },
+                {
+                    "name": "metric",
+                    "type": "select", 
+                    "label": "Metric",
+                    "default": "count",
+                    "options": [
+                        {"label": "Filing Count", "value": "count"},
+                        {"label": "Offering Amount", "value": "offering_amount"},
+                        {"label": "Amount Sold", "value": "amount_sold"}
+                    ]
+                }
+            ]
         },
         "top_industries": {
             "name": "Top 10 Industries",
@@ -93,7 +119,33 @@ def get_widgets():
             "type": "chart", 
             "endpoint": "top_industries",
             "gridData": {"w": 600, "h": 400},
-            "source": "The Marketcast"
+            "source": "The Marketcast",
+            "controls": [
+                {
+                    "name": "year",
+                    "type": "select",
+                    "label": "Year",
+                    "default": "all",
+                    "options": [
+                        {"label": "All Years", "value": "all"},
+                        {"label": "2024", "value": "2024"},
+                        {"label": "2023", "value": "2023"},
+                        {"label": "2022", "value": "2022"},
+                        {"label": "2021", "value": "2021"}
+                    ]
+                },
+                {
+                    "name": "metric",
+                    "type": "select", 
+                    "label": "Metric",
+                    "default": "count",
+                    "options": [
+                        {"label": "Filing Count", "value": "count"},
+                        {"label": "Offering Amount", "value": "offering_amount"},
+                        {"label": "Amount Sold", "value": "amount_sold"}
+                    ]
+                }
+            ]
         },
         "monthly_activity": {
             "name": "Monthly Filing Activity",
@@ -102,7 +154,20 @@ def get_widgets():
             "type": "chart",
             "endpoint": "monthly_activity", 
             "gridData": {"w": 1200, "h": 500},
-            "source": "The Marketcast"
+            "source": "The Marketcast",
+            "controls": [
+                {
+                    "name": "metric",
+                    "type": "select", 
+                    "label": "Metric",
+                    "default": "count",
+                    "options": [
+                        {"label": "Filing Count", "value": "count"},
+                        {"label": "Offering Amount", "value": "offering_amount"},
+                        {"label": "Amount Sold", "value": "amount_sold"}
+                    ]
+                }
+            ]
         },
         "top_fundraisers": {
             "name": "Top 20 Fundraisers",
@@ -111,7 +176,46 @@ def get_widgets():
             "type": "chart",
             "endpoint": "top_fundraisers",
             "gridData": {"w": 1200, "h": 600},
-            "source": "The Marketcast"
+            "source": "The Marketcast",
+            "controls": [
+                {
+                    "name": "year",
+                    "type": "select",
+                    "label": "Year",
+                    "default": "all",
+                    "options": [
+                        {"label": "All Years", "value": "all"},
+                        {"label": "2024", "value": "2024"},
+                        {"label": "2023", "value": "2023"},
+                        {"label": "2022", "value": "2022"},
+                        {"label": "2021", "value": "2021"}
+                    ]
+                },
+                {
+                    "name": "industry",
+                    "type": "select",
+                    "label": "Industry",
+                    "default": "all",
+                    "options": [
+                        {"label": "All Industries", "value": "all"},
+                        {"label": "Technology", "value": "Technology"},
+                        {"label": "Healthcare", "value": "Healthcare"},
+                        {"label": "Financial Services", "value": "Financial Services"},
+                        {"label": "Real Estate", "value": "Real Estate"},
+                        {"label": "Energy", "value": "Energy"}
+                    ]
+                },
+                {
+                    "name": "metric",
+                    "type": "select", 
+                    "label": "Metric",
+                    "default": "offering_amount",
+                    "options": [
+                        {"label": "Offering Amount", "value": "offering_amount"},
+                        {"label": "Amount Sold", "value": "amount_sold"}
+                    ]
+                }
+            ]
         },
         "location_distribution": {
             "name": "Geographic Distribution",
@@ -120,7 +224,33 @@ def get_widgets():
             "type": "chart",
             "endpoint": "location_distribution",
             "gridData": {"w": 1200, "h": 600},
-            "source": "The Marketcast"
+            "source": "The Marketcast",
+            "controls": [
+                {
+                    "name": "year",
+                    "type": "select",
+                    "label": "Year",
+                    "default": "all",
+                    "options": [
+                        {"label": "All Years", "value": "all"},
+                        {"label": "2024", "value": "2024"},
+                        {"label": "2023", "value": "2023"},
+                        {"label": "2022", "value": "2022"},
+                        {"label": "2021", "value": "2021"}
+                    ]
+                },
+                {
+                    "name": "metric",
+                    "type": "select", 
+                    "label": "Metric",
+                    "default": "count",
+                    "options": [
+                        {"label": "Filing Count", "value": "count"},
+                        {"label": "Offering Amount", "value": "offering_amount"},
+                        {"label": "Amount Sold", "value": "amount_sold"}
+                    ]
+                }
+            ]
         }
     }
     
