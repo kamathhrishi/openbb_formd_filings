@@ -702,5 +702,3 @@ if __name__ == "__main__":
     print(f"📊 Widgets: http://localhost:{port}/widgets.json")
     print(f"📱 Apps: http://localhost:{port}/apps.json")
     print("=" * 60)
-    
-    uvicorn.
