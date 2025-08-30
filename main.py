@@ -181,31 +181,6 @@ def get_widgets():
             "source": "The Marketcast",
             "params": [
                 {
-                    "paramName": "year",
-                    "label": "Year",
-                    "type": "text",
-                    "value": "all",
-                    "options": [
-                        {"label": "All Years", "value": "all"},
-                        {"label": "2025", "value": "2025"},
-                        {"label": "2024", "value": "2024"},
-                        {"label": "2023", "value": "2023"},
-                        {"label": "2022", "value": "2022"},
-                        {"label": "2021", "value": "2021"},
-                        {"label": "2020", "value": "2020"},
-                        {"label": "2019", "value": "2019"},
-                        {"label": "2018", "value": "2018"},
-                        {"label": "2017", "value": "2017"},
-                        {"label": "2016", "value": "2016"},
-                        {"label": "2015", "value": "2015"},
-                        {"label": "2014", "value": "2014"},
-                        {"label": "2013", "value": "2013"},
-                        {"label": "2012", "value": "2012"},
-                        {"label": "2011", "value": "2011"},
-                        {"label": "2010", "value": "2010"}
-                    ]
-                },
-                {
                     "paramName": "metric",
                     "label": "Metric",
                     "type": "text",
@@ -647,7 +622,7 @@ def get_top_industries(year: str = None, metric: str = "count"):
         else:
             distribution = data["distribution"][:10]
         
-        distribution = sorted(distribution, key=lambda x: x["value"], reverse=True)
+        distribution = sorted(distribution, key=lambda x: x["value"], reverse=False)
         
         fig = go.Figure(data=[go.Bar(
             x=[item["value"] for item in distribution],
@@ -713,15 +688,13 @@ def get_top_industries(year: str = None, metric: str = "count"):
         return {"error": str(e)}
 
 @app.get("/monthly_activity")
-def get_monthly_activity(metric: str = "count", industry: str = "all", year: str = "all"):
-    """Get monthly filing activity time series with metric, industry, and year selection"""
+def get_monthly_activity(metric: str = "count", industry: str = "all"):
+    """Get monthly filing activity time series with metric and industry selection"""
     try:
         # Build query parameters
         params = []
         if industry and industry != "all":
             params.append(f"industry={industry}")
-        if year and year != "all":
-            params.append(f"year={year}")
         
         # Use different endpoint based on metric
         if metric == "offering_amount":
@@ -798,8 +771,6 @@ def get_monthly_activity(metric: str = "count", industry: str = "all", year: str
         
         # Add filtering context to title
         filter_parts = []
-        if year and year != "all":
-            filter_parts.append(f"Year: {year}")
         if industry and industry != "all":
             filter_parts.append(f"Industry: {industry}")
         
@@ -885,6 +856,9 @@ def get_top_fundraisers(year: str = None, industry: str = None, metric: str = "o
             ]
         else:
             fundraisers = data["top_fundraisers"][:20]
+        
+        # Sort data in ascending order for proper display (smallest at bottom, largest at top)
+        fundraisers = sorted(fundraisers, key=lambda x: x.get("amount", 0), reverse=False)
         
         fig = go.Figure(data=[go.Bar(
             x=[item["amount"] for item in fundraisers],
