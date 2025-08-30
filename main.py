@@ -934,43 +934,33 @@ def get_location_distribution(year: str = None, metric: str = "count"):
     try:
         print(f"🔍 Fetching location distribution data... (year: {year}, metric: {metric})")
         
-        # Build query parameters
-        params = []
+        # Build query parameters - always include year parameter
+        params = [f"metric={metric}"]
         if year and year != "all":
             params.append(f"year={year}")
-        if metric and metric != "count":
-            params.append(f"metric={metric}")
         
         query_string = "&".join(params)
-        endpoint = f"charts/location-distribution?metric={metric}"
-        if query_string:
-            endpoint += f"&{query_string}"
+        endpoint = f"charts/location-distribution?{query_string}"
         
         print(f"📡 Location distribution endpoint: {endpoint}")
         data = fetch_backend_data(endpoint)
         print(f"📊 Location distribution response: {data is not None} - has distribution: {data.get('distribution') is not None if data else 'No data'}")
+        print(f"📊 Year parameter sent: {year}, Expected filtering: {year != 'all'}")
         
         if not data or not data.get("distribution"):
-            print("⚠️ Using fallback location distribution data")
-            # Make fallback data year-aware so filtering is visible
-            base_multiplier = 1.0
-            if year and year != "all":
-                # Simulate different data for different years
-                year_int = int(year) if year.isdigit() else 2024
-                base_multiplier = 0.5 + (year_int - 2010) * 0.1  # Simulate growth over time
-            
-            distribution = [
-                {"name": "CA", "value": int(450 * base_multiplier)},
-                {"name": "NY", "value": int(320 * base_multiplier)},
-                {"name": "TX", "value": int(280 * base_multiplier)},
-                {"name": "FL", "value": int(180 * base_multiplier)},
-                {"name": "IL", "value": int(150 * base_multiplier)},
-                {"name": "WA", "value": int(120 * base_multiplier)},
-                {"name": "MA", "value": int(110 * base_multiplier)}
-            ]
+            print(f"❌ Backend call failed - no data returned for endpoint: {endpoint}")
+            print(f"❌ Backend URL: {BACKEND_URL}")
+            print(f"❌ This means either:")
+            print(f"   1. Backend is not running")
+            print(f"   2. Backend endpoint returned empty data")
+            print(f"   3. Network connection issue")
+            return {"error": "Backend data not available"}
         else:
             print(f"✅ Using real backend data: {len(data['distribution'])} locations")
             distribution = data["distribution"][:25]
+            # Add debug info for real data
+            if len(distribution) > 0:
+                print(f"📊 Real data sample - {distribution[0]['name']}: {distribution[0]['value']} filings")
         
         fig = go.Figure(data=go.Choropleth(
             locations=[item["name"] for item in distribution],
