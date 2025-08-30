@@ -412,12 +412,13 @@ def get_security_types():
             marker_colors=colors[:len(final_data)],
             textinfo='label+percent',
             textposition='auto',
+            textfont=dict(color='white', size=12),  # White text
             hovertemplate='<b>%{label}</b><br>Filings: %{value:,}<br>Percentage: %{percent}<extra></extra>'
         )])
         
         fig.update_layout(
             title=dict(
-                text=f"Security Type Distribution<br><sub style='color:#666'>{chart_title}</sub>",
+                text=f"Security Type Distribution<br><sub style='color:white'>{chart_title}</sub>",
                 x=0.5,
                 font=dict(size=16, color='white')
             ),
@@ -427,12 +428,24 @@ def get_security_types():
                 orientation="v", 
                 yanchor="middle", 
                 y=0.5,
-                font=dict(size=12, color='white')
+                font=dict(size=12, color='white')  # White legend text
             ),
             plot_bgcolor='rgba(0,0,0,0)',
             paper_bgcolor='rgba(0,0,0,0)',
             xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
-            yaxis=dict(showgrid=False, zeroline=False, showticklabels=False)
+            yaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+            # Disable resizing
+            dragmode=False
+        )
+        
+        # Disable modebar (toolbar) to prevent resizing
+        fig.update_layout(
+            modebar=dict(
+                remove=['zoom', 'pan', 'select', 'lasso', 'zoomIn', 'zoomOut', 'autoScale', 'resetScale'],
+                bgcolor='rgba(0,0,0,0)',
+                color='white',
+                activecolor='white'
+            )
         )
         
         print("✅ Chart created successfully")
@@ -451,14 +464,17 @@ def get_security_types():
             labels=["Equity", "Debt", "Fund"],
             values=[1250, 450, 320],
             hole=0.4,
-            marker_colors=['#3B82F6', '#F59E0B', '#10B981']
+            marker_colors=['#3B82F6', '#F59E0B', '#10B981'],
+            textfont=dict(color='white', size=12)
         )])
         fallback_fig.update_layout(
             title="Security Type Distribution (Fallback)",
             height=400,
             plot_bgcolor='rgba(0,0,0,0)',
             paper_bgcolor='rgba(0,0,0,0)',
-            title_font_color='white'
+            title_font_color='white',
+            legend=dict(font=dict(color='white')),
+            dragmode=False
         )
         print("✅ Fallback chart created successfully")
         return json.loads(fallback_fig.to_json())
@@ -493,12 +509,13 @@ def get_top_industries():
             marker_color='#3B82F6',
             text=[f'{item["value"]:,}' for item in distribution],
             textposition='outside',
+            textfont=dict(color='white', size=12),  # White text
             hovertemplate='<b>%{y}</b><br>Filings: %{x:,}<extra></extra>'
         )])
         
         fig.update_layout(
             title=dict(
-                text=f"Top 10 Industries<br><sub>Real Form D data - most active sectors</sub>",
+                text=f"Top 10 Industries<br><sub style='color:white'>Real Form D data - most active sectors</sub>",
                 x=0.5,
                 font=dict(size=16, color='white')
             ),
@@ -518,7 +535,19 @@ def get_top_industries():
             ),
             plot_bgcolor='rgba(0,0,0,0)',
             paper_bgcolor='rgba(0,0,0,0)',
-            title_font_color='white'
+            title_font_color='white',
+            # Disable resizing
+            dragmode=False
+        )
+        
+        # Disable modebar (toolbar) to prevent resizing
+        fig.update_layout(
+            modebar=dict(
+                remove=['zoom', 'pan', 'select', 'lasso', 'zoomIn', 'zoomOut', 'autoScale', 'resetScale'],
+                bgcolor='rgba(0,0,0,0)',
+                color='white',
+                activecolor='white'
+            )
         )
         
         return json.loads(fig.to_json())
@@ -552,22 +581,28 @@ def get_monthly_activity():
         # Add traces for each security type
         fig.add_trace(go.Scatter(
             x=months, y=equity_data, mode='lines+markers', name='Equity Filings',
-            line=dict(color='#3B82F6', width=3), marker=dict(size=6)
+            line=dict(color='#3B82F6', width=3), marker=dict(size=6),
+            text=[f'Equity: {val:,}' for val in equity_data],
+            textfont=dict(color='white', size=10)  # White text
         ))
         
         fig.add_trace(go.Scatter(
             x=months, y=debt_data, mode='lines+markers', name='Debt Filings',
-            line=dict(color='#F59E0B', width=3), marker=dict(size=6)
+            line=dict(color='#F59E0B', width=3), marker=dict(size=6),
+            text=[f'Debt: {val:,}' for val in debt_data],
+            textfont=dict(color='white', size=10)  # White text
         ))
         
         fig.add_trace(go.Scatter(
             x=months, y=fund_data, mode='lines+markers', name='Fund Filings',
-            line=dict(color='#10B981', width=3), marker=dict(size=6)
+            line=dict(color='#10B981', width=3), marker=dict(size=6),
+            text=[f'Fund: {val:,}' for val in fund_data],
+            textfont=dict(color='white', size=10)  # White text
         ))
         
         fig.update_layout(
             title=dict(
-                text=f"Monthly Filing Activity<br><sub>Real Form D data - filings over time</sub>",
+                text=f"Monthly Filing Activity<br><sub style='color:white'>Real Form D data - filings over time</sub>",
                 x=0.5,
                 font=dict(size=16, color='white')
             ),
@@ -587,9 +622,24 @@ def get_monthly_activity():
                 tickfont_color='white',
                 gridcolor='rgba(255,255,255,0.1)'
             ),
+            legend=dict(
+                font=dict(color='white', size=12)  # White legend text
+            ),
             plot_bgcolor='rgba(0,0,0,0)',
             paper_bgcolor='rgba(0,0,0,0)',
-            title_font_color='white'
+            title_font_color='white',
+            # Disable resizing
+            dragmode=False
+        )
+        
+        # Disable modebar (toolbar) to prevent resizing
+        fig.update_layout(
+            modebar=dict(
+                remove=['zoom', 'pan', 'select', 'lasso', 'zoomIn', 'zoomOut', 'autoScale', 'resetScale'],
+                bgcolor='rgba(0,0,0,0)',
+                color='white',
+                activecolor='white'
+            )
         )
         
         return json.loads(fig.to_json())
@@ -628,13 +678,14 @@ def get_top_fundraisers():
             ],
             text=[item.get("formatted_amount", f"${item['amount']:,.0f}") for item in fundraisers],
             textposition='outside',
+            textfont=dict(color='white', size=10),  # White text
             hovertemplate='<b>%{y}</b><br>Amount: %{text}<br>Type: %{customdata}<extra></extra>',
             customdata=[item.get("security_type", "Unknown") for item in fundraisers]
         )])
         
         fig.update_layout(
             title=dict(
-                text=f"Top 20 Fundraisers<br><sub>Real Form D data - largest offering amounts</sub>",
+                text=f"Top 20 Fundraisers<br><sub style='color:white'>Real Form D data - largest offering amounts</sub>",
                 x=0.5,
                 font=dict(size=16, color='white')
             ),
@@ -654,7 +705,19 @@ def get_top_fundraisers():
             ),
             plot_bgcolor='rgba(0,0,0,0)',
             paper_bgcolor='rgba(0,0,0,0)',
-            title_font_color='white'
+            title_font_color='white',
+            # Disable resizing
+            dragmode=False
+        )
+        
+        # Disable modebar (toolbar) to prevent resizing
+        fig.update_layout(
+            modebar=dict(
+                remove=['zoom', 'pan', 'select', 'lasso', 'zoomIn', 'zoomOut', 'autoScale', 'resetScale'],
+                bgcolor='rgba(0,0,0,0)',
+                color='white',
+                activecolor='white'
+            )
         )
         
         return json.loads(fig.to_json())
@@ -690,12 +753,15 @@ def get_location_distribution():
             colorscale='Blues',
             text=[f'{item["name"]}: {item["value"]:,} filings' for item in distribution],
             hovertemplate='<b>%{text}</b><extra></extra>',
-            colorbar_title="Number of Filings"
-        ))
+            colorbar=dict(
+                title=dict(text="Number of Filings", font=dict(color='white')),
+                tickfont=dict(color='white')
+            )
+        )])
         
         fig.update_layout(
             title=dict(
-                text=f"Geographic Distribution<br><sub>Real Form D data - filings by US state</sub>",
+                text=f"Geographic Distribution<br><sub style='color:white'>Real Form D data - filings by US state</sub>",
                 x=0.5,
                 font=dict(size=16, color='white')
             ),
@@ -716,7 +782,19 @@ def get_location_distribution():
             margin=dict(l=50, r=50, t=80, b=50),
             plot_bgcolor='rgba(0,0,0,0)',
             paper_bgcolor='rgba(0,0,0,0)',
-            title_font_color='white'
+            title_font_color='white',
+            # Disable resizing
+            dragmode=False
+        )
+        
+        # Disable modebar (toolbar) to prevent resizing
+        fig.update_layout(
+            modebar=dict(
+                remove=['zoom', 'pan', 'select', 'lasso', 'zoomIn', 'zoomOut', 'autoScale', 'resetScale'],
+                bgcolor='rgba(0,0,0,0)',
+                color='white',
+                activecolor='white'
+            )
         )
         
         return json.loads(fig.to_json())
@@ -736,6 +814,8 @@ if __name__ == "__main__":
     print("🔧 Widget types: markdown, table, chart")
     print("📝 Form D Intro: Professional markdown content without emojis")
     print("📊 Security Types: Returns Plotly chart JSON for OpenBB chart widget")
+    print("🎨 ALL TEXT WHITE: Charts now have white text throughout")
+    print("🔒 NON-RESIZABLE: Drag and zoom disabled on all charts")
     print("=" * 60)
     
     port = int(os.getenv("PORT", 8000))
