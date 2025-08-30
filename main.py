@@ -302,64 +302,24 @@ def get_latest_filings():
 
 @app.get("/security_types")
 def get_security_types():
-    """Get security type distribution chart - identical to HTML dashboard"""
+    """Get security type distribution chart"""
     try:
         print("🔍 Fetching security type distribution data...")
-        # Fetch real data from backend - same endpoint as HTML dashboard
         data = fetch_backend_data("charts/security-type-distribution?metric=count")
         
-        print(f"📊 Backend response: {data}")
-        
         if not data or not data.get("distribution"):
-            print("⚠️ Using fallback data for security types")
-            # Fallback data if backend fails
             distribution = [
-                {"name": "Equity", "value": 1250, "count": 1250, "total_amount": 125000000000, "total_sold": 98000000000},
-                {"name": "Debt", "value": 450, "count": 450, "total_amount": 45000000000, "total_sold": 38000000000},
-                {"name": "Fund", "value": 320, "count": 320, "total_amount": 32000000000, "total_sold": 28000000000}
+                {"name": "Equity", "value": 1250},
+                {"name": "Debt", "value": 450},
+                {"name": "Fund", "value": 320}
             ]
         else:
             distribution = data["distribution"]
-            print(f"✅ Using real data: {distribution}")
         
-        # Ensure we have valid data
-        if not distribution:
-            print("⚠️ Distribution is empty, using basic fallback")
-            distribution = [
-                {"name": "Equity", "value": 1250},
-                {"name": "Debt", "value": 450},
-                {"name": "Fund", "value": 320}
-            ]
-        
-        # Validate data structure
-        valid_distribution = []
-        for item in distribution:
-            if isinstance(item, dict) and "name" in item and "value" in item:
-                try:
-                    value = float(item["value"])
-                    if value > 0:
-                        valid_distribution.append(item)
-                except (ValueError, TypeError):
-                    print(f"⚠️ Invalid value for {item.get('name', 'Unknown')}: {item.get('value')}")
-            else:
-                print(f"⚠️ Invalid item structure: {item}")
-        
-        if not valid_distribution:
-            print("⚠️ No valid data found, using basic fallback")
-            valid_distribution = [
-                {"name": "Equity", "value": 1250},
-                {"name": "Debt", "value": 450},
-                {"name": "Fund", "value": 320}
-            ]
-        
-        distribution = valid_distribution
-        print(f"🎯 Final distribution data: {distribution}")
-        
-        # Calculate total from the full dataset before grouping into 'other' - exactly like HTML version
+        # Calculate total
         total_value = sum(item.get("value", 0) for item in distribution)
-        print(f"📈 Total value: {total_value}")
-
-        # Group data for chart display (Top 4 + Other) - exactly like HTML dashboard
+        
+        # Group data for chart display (Top 4 + Other)
         display_data = sorted(distribution, key=lambda x: x.get("value", 0), reverse=True)
         top_4 = display_data[:4]
         
@@ -367,52 +327,25 @@ def get_security_types():
             others = display_data[4:]
             other_item = {
                 "name": "All Others",
-                "value": sum(item.get("value", 0) for item in others),
-                "count": sum(item.get("count", 0) for item in others),
-                "total_amount": sum(item.get("total_amount", 0) for item in others)
+                "value": sum(item.get("value", 0) for item in others)
             }
             top_4.append(other_item)
         
         final_data = top_4
-        print(f"🎨 Final chart data: {final_data}")
-
-        # Colors identical to HTML dashboard
         colors = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6']
-        
-        # Chart title identical to HTML dashboard
         chart_title = f"Total: {total_value:,}"
         
-        # Create donut pie chart identical to HTML dashboard
         labels = [str(item["name"]) for item in final_data]
         values = [float(item["value"]) for item in final_data]
-        
-        print(f"🎨 Chart labels: {labels}")
-        print(f"🎨 Chart values: {values}")
-        print(f"🎨 Chart colors: {colors[:len(final_data)]}")
-        
-        # Validate chart data before creating figure
-        if not labels or not values or len(labels) != len(values):
-            print("❌ Invalid chart data, using fallback")
-            labels = ["Equity", "Debt", "Fund"]
-            values = [1250, 450, 320]
-            final_data = [
-                {"name": "Equity", "value": 1250},
-                {"name": "Debt", "value": 450},
-                {"name": "Fund", "value": 320}
-            ]
-        
-        print(f"🎨 Final chart labels: {labels}")
-        print(f"🎨 Final chart values: {values}")
-        print(f"🎨 Final chart colors: {colors[:len(final_data)]}")
         
         fig = go.Figure(data=[go.Pie(
             labels=labels,
             values=values,
-            hole=0.4,  # Donut chart like HTML dashboard
+            hole=0.4,
             marker_colors=colors[:len(final_data)],
             textinfo='label+percent',
             textposition='auto',
-            textfont=dict(color='white', size=12),  # White text
+            textfont=dict(color='white', size=12),
             hovertemplate='<b>%{label}</b><br>Filings: %{value:,}<br>Percentage: %{percent}<extra></extra>'
         )])
         
@@ -428,18 +361,11 @@ def get_security_types():
                 orientation="v", 
                 yanchor="middle", 
                 y=0.5,
-                font=dict(size=12, color='white')  # White legend text
+                font=dict(size=12, color='white')
             ),
             plot_bgcolor='rgba(0,0,0,0)',
             paper_bgcolor='rgba(0,0,0,0)',
-            xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
-            yaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
-            # Disable resizing
-            dragmode=False
-        )
-        
-        # Disable modebar (toolbar) to prevent resizing
-        fig.update_layout(
+            dragmode=False,
             modebar=dict(
                 remove=['zoom', 'pan', 'select', 'lasso', 'zoomIn', 'zoomOut', 'autoScale', 'resetScale'],
                 bgcolor='rgba(0,0,0,0)',
@@ -448,18 +374,10 @@ def get_security_types():
             )
         )
         
-        print("✅ Chart created successfully")
-        
-        # Convert to JSON and verify the structure
-        chart_json = fig.to_json()
-        print(f"📊 Chart JSON length: {len(chart_json)}")
-        
-        # Return the chart data directly
-        return json.loads(chart_json)
+        return json.loads(fig.to_json())
         
     except Exception as e:
         print(f"❌ Error in security_types: {e}")
-        # Return a simple fallback chart on error
         fallback_fig = go.Figure(data=[go.Pie(
             labels=["Equity", "Debt", "Fund"],
             values=[1250, 450, 320],
@@ -476,18 +394,15 @@ def get_security_types():
             legend=dict(font=dict(color='white')),
             dragmode=False
         )
-        print("✅ Fallback chart created successfully")
         return json.loads(fallback_fig.to_json())
 
 @app.get("/top_industries") 
 def get_top_industries():
     """Get top 10 industries chart"""
     try:
-        # Fetch real data from backend
         data = fetch_backend_data("charts/industry-distribution?metric=count")
         
         if not data or not data.get("distribution"):
-            # Fallback data
             distribution = [
                 {"name": "Technology", "value": 850},
                 {"name": "Healthcare", "value": 620},
@@ -496,12 +411,10 @@ def get_top_industries():
                 {"name": "Energy", "value": 280}
             ]
         else:
-            distribution = data["distribution"][:10]  # Top 10
+            distribution = data["distribution"][:10]
         
-        # Sort by value (number of filings) from highest to lowest
         distribution = sorted(distribution, key=lambda x: x["value"], reverse=True)
         
-        # Create horizontal bar chart
         fig = go.Figure(data=[go.Bar(
             x=[item["value"] for item in distribution],
             y=[item["name"][:30] + "..." if len(item["name"]) > 30 else item["name"] for item in distribution],
@@ -509,13 +422,13 @@ def get_top_industries():
             marker_color='#3B82F6',
             text=[f'{item["value"]:,}' for item in distribution],
             textposition='outside',
-            textfont=dict(color='white', size=12),  # White text
+            textfont=dict(color='white', size=12),
             hovertemplate='<b>%{y}</b><br>Filings: %{x:,}<extra></extra>'
         )])
         
         fig.update_layout(
             title=dict(
-                text=f"Top 10 Industries<br><sub style='color:white'>Real Form D data - most active sectors</sub>",
+                text="Top 10 Industries<br><sub style='color:white'>Real Form D data - most active sectors</sub>",
                 x=0.5,
                 font=dict(size=16, color='white')
             ),
@@ -536,12 +449,7 @@ def get_top_industries():
             plot_bgcolor='rgba(0,0,0,0)',
             paper_bgcolor='rgba(0,0,0,0)',
             title_font_color='white',
-            # Disable resizing
-            dragmode=False
-        )
-        
-        # Disable modebar (toolbar) to prevent resizing
-        fig.update_layout(
+            dragmode=False,
             modebar=dict(
                 remove=['zoom', 'pan', 'select', 'lasso', 'zoomIn', 'zoomOut', 'autoScale', 'resetScale'],
                 bgcolor='rgba(0,0,0,0)',
@@ -560,11 +468,9 @@ def get_top_industries():
 def get_monthly_activity():
     """Get monthly filing activity time series"""
     try:
-        # Fetch real data from backend
         data = fetch_backend_data("charts")
         
         if not data or not data.get("time_series"):
-            # Fallback data
             months = ["2024-01", "2024-02", "2024-03", "2024-04", "2024-05", "2024-06"]
             equity_data = [120, 135, 110, 145, 160, 155]
             debt_data = [45, 50, 40, 55, 60, 50]
@@ -578,31 +484,24 @@ def get_monthly_activity():
         
         fig = go.Figure()
         
-        # Add traces for each security type
         fig.add_trace(go.Scatter(
             x=months, y=equity_data, mode='lines+markers', name='Equity Filings',
-            line=dict(color='#3B82F6', width=3), marker=dict(size=6),
-            text=[f'Equity: {val:,}' for val in equity_data],
-            textfont=dict(color='white', size=10)  # White text
+            line=dict(color='#3B82F6', width=3), marker=dict(size=6)
         ))
         
         fig.add_trace(go.Scatter(
             x=months, y=debt_data, mode='lines+markers', name='Debt Filings',
-            line=dict(color='#F59E0B', width=3), marker=dict(size=6),
-            text=[f'Debt: {val:,}' for val in debt_data],
-            textfont=dict(color='white', size=10)  # White text
+            line=dict(color='#F59E0B', width=3), marker=dict(size=6)
         ))
         
         fig.add_trace(go.Scatter(
             x=months, y=fund_data, mode='lines+markers', name='Fund Filings',
-            line=dict(color='#10B981', width=3), marker=dict(size=6),
-            text=[f'Fund: {val:,}' for val in fund_data],
-            textfont=dict(color='white', size=10)  # White text
+            line=dict(color='#10B981', width=3), marker=dict(size=6)
         ))
         
         fig.update_layout(
             title=dict(
-                text=f"Monthly Filing Activity<br><sub style='color:white'>Real Form D data - filings over time</sub>",
+                text="Monthly Filing Activity<br><sub style='color:white'>Real Form D data - filings over time</sub>",
                 x=0.5,
                 font=dict(size=16, color='white')
             ),
@@ -623,17 +522,12 @@ def get_monthly_activity():
                 gridcolor='rgba(255,255,255,0.1)'
             ),
             legend=dict(
-                font=dict(color='white', size=12)  # White legend text
+                font=dict(color='white', size=12)
             ),
             plot_bgcolor='rgba(0,0,0,0)',
             paper_bgcolor='rgba(0,0,0,0)',
             title_font_color='white',
-            # Disable resizing
-            dragmode=False
-        )
-        
-        # Disable modebar (toolbar) to prevent resizing
-        fig.update_layout(
+            dragmode=False,
             modebar=dict(
                 remove=['zoom', 'pan', 'select', 'lasso', 'zoomIn', 'zoomOut', 'autoScale', 'resetScale'],
                 bgcolor='rgba(0,0,0,0)',
@@ -652,11 +546,9 @@ def get_monthly_activity():
 def get_top_fundraisers():
     """Get top 20 fundraisers chart"""
     try:
-        # Fetch real data from backend
         data = fetch_backend_data("charts/top-fundraisers?metric=offering_amount")
         
         if not data or not data.get("top_fundraisers"):
-            # Fallback data
             fundraisers = [
                 {"company_name": "TechCorp Inc", "amount": 500000000, "formatted_amount": "$500M", "security_type": "Equity"},
                 {"company_name": "HealthVentures LLC", "amount": 250000000, "formatted_amount": "$250M", "security_type": "Equity"},
@@ -664,9 +556,8 @@ def get_top_fundraisers():
                 {"company_name": "FinTech Solutions", "amount": 100000000, "formatted_amount": "$100M", "security_type": "Debt"}
             ]
         else:
-            fundraisers = data["top_fundraisers"][:20]  # Top 20
+            fundraisers = data["top_fundraisers"][:20]
         
-        # Create horizontal bar chart
         fig = go.Figure(data=[go.Bar(
             x=[item["amount"] for item in fundraisers],
             y=[item["company_name"][:40] + "..." if len(item["company_name"]) > 40 else item["company_name"] for item in fundraisers],
@@ -678,14 +569,14 @@ def get_top_fundraisers():
             ],
             text=[item.get("formatted_amount", f"${item['amount']:,.0f}") for item in fundraisers],
             textposition='outside',
-            textfont=dict(color='white', size=10),  # White text
+            textfont=dict(color='white', size=10),
             hovertemplate='<b>%{y}</b><br>Amount: %{text}<br>Type: %{customdata}<extra></extra>',
             customdata=[item.get("security_type", "Unknown") for item in fundraisers]
         )])
         
         fig.update_layout(
             title=dict(
-                text=f"Top 20 Fundraisers<br><sub style='color:white'>Real Form D data - largest offering amounts</sub>",
+                text="Top 20 Fundraisers<br><sub style='color:white'>Real Form D data - largest offering amounts</sub>",
                 x=0.5,
                 font=dict(size=16, color='white')
             ),
@@ -706,12 +597,7 @@ def get_top_fundraisers():
             plot_bgcolor='rgba(0,0,0,0)',
             paper_bgcolor='rgba(0,0,0,0)',
             title_font_color='white',
-            # Disable resizing
-            dragmode=False
-        )
-        
-        # Disable modebar (toolbar) to prevent resizing
-        fig.update_layout(
+            dragmode=False,
             modebar=dict(
                 remove=['zoom', 'pan', 'select', 'lasso', 'zoomIn', 'zoomOut', 'autoScale', 'resetScale'],
                 bgcolor='rgba(0,0,0,0)',
@@ -730,11 +616,9 @@ def get_top_fundraisers():
 def get_location_distribution():
     """Get geographic distribution of filings"""
     try:
-        # Fetch real data from backend
         data = fetch_backend_data("charts/location-distribution?metric=count")
         
         if not data or not data.get("distribution"):
-            # Fallback data
             distribution = [
                 {"name": "CA", "value": 450},
                 {"name": "NY", "value": 320},
@@ -743,9 +627,8 @@ def get_location_distribution():
                 {"name": "IL", "value": 150}
             ]
         else:
-            distribution = data["distribution"][:25]  # Top 25 states
+            distribution = data["distribution"][:25]
         
-        # Create choropleth map
         fig = go.Figure(data=go.Choropleth(
             locations=[item["name"] for item in distribution],
             z=[item["value"] for item in distribution],
@@ -757,11 +640,11 @@ def get_location_distribution():
                 title=dict(text="Number of Filings", font=dict(color='white')),
                 tickfont=dict(color='white')
             )
-        )])
+        ))
         
         fig.update_layout(
             title=dict(
-                text=f"Geographic Distribution<br><sub style='color:white'>Real Form D data - filings by US state</sub>",
+                text="Geographic Distribution<br><sub style='color:white'>Real Form D data - filings by US state</sub>",
                 x=0.5,
                 font=dict(size=16, color='white')
             ),
@@ -783,12 +666,7 @@ def get_location_distribution():
             plot_bgcolor='rgba(0,0,0,0)',
             paper_bgcolor='rgba(0,0,0,0)',
             title_font_color='white',
-            # Disable resizing
-            dragmode=False
-        )
-        
-        # Disable modebar (toolbar) to prevent resizing
-        fig.update_layout(
+            dragmode=False,
             modebar=dict(
                 remove=['zoom', 'pan', 'select', 'lasso', 'zoomIn', 'zoomOut', 'autoScale', 'resetScale'],
                 bgcolor='rgba(0,0,0,0)',
@@ -825,4 +703,4 @@ if __name__ == "__main__":
     print(f"📱 Apps: http://localhost:{port}/apps.json")
     print("=" * 60)
     
-    uvicorn.run(app, host="0.0.0.0", port=port)
+    uvicorn.
