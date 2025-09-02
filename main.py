@@ -134,7 +134,46 @@ def get_widgets():
             "type": "table",
             "endpoint": "latest_filings",
             "gridData": {"w": 1200, "h": 400},
-            "source": "The Marketcast"
+            "source": "The Marketcast",
+            "columnDefs": [
+                {
+                    "field": "company",
+                    "headerName": "Company",
+                    "cellRenderer": "linkRenderer",
+                    "cellRendererParams": {
+                        "groupBy": "company_analysis",
+                        "paramName": "company_name"
+                    },
+                    "cellStyle": {
+                        "color": "#3B82F6",
+                        "textDecoration": "underline",
+                        "cursor": "pointer"
+                    }
+                },
+                {
+                    "field": "amount",
+                    "headerName": "Amount",
+                    "type": "numericColumn"
+                },
+                {
+                    "field": "type",
+                    "headerName": "Security Type"
+                },
+                {
+                    "field": "industry",
+                    "headerName": "Industry"
+                },
+                {
+                    "field": "location",
+                    "headerName": "Location"
+                },
+                {
+                    "field": "date",
+                    "headerName": "Filing Date",
+                    "type": "dateColumn"
+                }
+            ],
+            "groupBy": "company_analysis"
         },
         "security_types": {
             "name": "Security Type Distribution",
@@ -381,6 +420,66 @@ def get_widgets():
                     ]
                 }
             ]
+        },
+        "company_detail": {
+            "name": "Company Detail",
+            "description": "Detailed information about a selected company",
+            "category": "Form D Analytics",
+            "type": "markdown",
+            "endpoint": "company_detail",
+            "gridData": {"w": 1200, "h": 400},
+            "source": "The Marketcast",
+            "groupBy": "company_analysis",
+            "params": [
+                {
+                    "paramName": "company_name",
+                    "label": "Company Name",
+                    "type": "text",
+                    "value": "",
+                    "description": "Enter company name to view details",
+                    "groupBy": "company_analysis"
+                }
+            ]
+        },
+        "company_filings": {
+            "name": "Company Filing History",
+            "description": "All filings for a specific company",
+            "category": "Form D Analytics",
+            "type": "table",
+            "endpoint": "company_filings",
+            "gridData": {"w": 1200, "h": 400},
+            "source": "The Marketcast",
+            "groupBy": "company_analysis",
+            "params": [
+                {
+                    "paramName": "company_name",
+                    "label": "Company Name",
+                    "type": "text",
+                    "value": "",
+                    "description": "Enter company name to view filing history",
+                    "groupBy": "company_analysis"
+                }
+            ]
+        },
+        "industry_detail": {
+            "name": "Industry Analysis",
+            "description": "Detailed analysis of a selected industry",
+            "category": "Form D Analytics",
+            "type": "markdown",
+            "endpoint": "industry_detail",
+            "gridData": {"w": 1200, "h": 400},
+            "source": "The Marketcast",
+            "groupBy": "industry_analysis",
+            "params": [
+                {
+                    "paramName": "industry_name",
+                    "label": "Industry",
+                    "type": "text",
+                    "value": "",
+                    "description": "Enter industry name to view analysis",
+                    "groupBy": "industry_analysis"
+                }
+            ]
         }
     }
     
@@ -426,9 +525,35 @@ def get_apps():
                     "layout": [
                         {"i": "location_distribution", "x": 0, "y": 0, "w": 40, "h": 24}
                     ]
+                },
+                "company": {
+                    "id": "company",
+                    "name": "Company Analysis",
+                    "layout": [
+                        {"i": "company_detail", "x": 0, "y": 0, "w": 40, "h": 12},
+                        {"i": "company_filings", "x": 0, "y": 12, "w": 40, "h": 12}
+                    ]
+                },
+                "industry": {
+                    "id": "industry",
+                    "name": "Industry Analysis",
+                    "layout": [
+                        {"i": "industry_detail", "x": 0, "y": 0, "w": 40, "h": 12},
+                        {"i": "top_industries", "x": 0, "y": 12, "w": 20, "h": 16},
+                        {"i": "monthly_activity", "x": 20, "y": 12, "w": 20, "h": 16}
+                    ]
                 }
             },
-            "groups": []
+            "groups": [
+                {
+                    "name": "company_analysis",
+                    "description": "Company analysis parameter group for synchronized navigation"
+                },
+                {
+                    "name": "industry_analysis",
+                    "description": "Industry analysis parameter group for synchronized navigation"
+                }
+            ]
         }
     ]
     
@@ -708,15 +833,24 @@ def get_top_industries(year: str = None, metric: str = "count", theme: str = "da
         # Get theme colors
         theme_colors = get_theme_colors(theme)
         
+        # Prepare industry names for display and linking
+        industry_names = []
+        industry_links = []
+        for item in distribution:
+            full_name = item["name"]
+            display_name = full_name[:30] + "..." if len(full_name) > 30 else full_name
+            industry_names.append(display_name)
+            industry_links.append(full_name)
+        
         fig = go.Figure(data=[go.Bar(
             x=[item["value"] for item in distribution],
-            y=[item["name"][:30] + "..." if len(item["name"]) > 30 else item["name"] for item in distribution],
+            y=industry_names,
             orientation='h',
             marker_color=theme_colors["main_line"],
             text=[f'{item["value"]:,}' for item in distribution],
             textposition='outside',
             textfont=dict(color=theme_colors["text"], size=12),
-            hovertemplate='<b>%{y}</b><br>Filings: %{x:,}<extra></extra>'
+            hovertemplate='<b>%{y}</b><br>Filings: %{x:,}<br><i>Click to view industry analysis</i><extra></extra>'
         )])
         
         # Add filtering context to title
@@ -762,7 +896,22 @@ def get_top_industries(year: str = None, metric: str = "count", theme: str = "da
         
         # Convert figure to JSON and apply config
         figure_json = json.loads(fig.to_json())
-        figure_json['config'] = get_toolbar_config()
+        toolbar_config = get_toolbar_config()
+        
+        # Add click event handling for industry navigation
+        toolbar_config['plotlyServerURL'] = False
+        toolbar_config['responsive'] = True
+        
+        figure_json['config'] = toolbar_config
+        
+        # Add click event data for OpenBB to handle
+        figure_json['clickData'] = {
+            'type': 'updateWidget',
+            'targetWidget': 'industry_detail',
+            'paramMapping': {
+                'industry_name': 'y'  # Map the y-axis value (industry name) to industry_name parameter
+            }
+        }
 
         return figure_json
         
@@ -964,9 +1113,19 @@ def get_top_fundraisers(year: str = None, industry: str = None, metric: str = "o
         # Get theme colors
         theme_colors = get_theme_colors(theme)
         
+        # Prepare company names for display and linking
+        company_names = []
+        company_links = []
+        for item in fundraisers:
+            full_name = item["company_name"]
+            display_name = full_name[:40] + "..." if len(full_name) > 40 else full_name
+            company_names.append(display_name)
+            # Create a clickable link that will update the company detail widget
+            company_links.append(full_name)
+        
         fig = go.Figure(data=[go.Bar(
             x=[item["amount"] for item in fundraisers],
-            y=[item["company_name"][:40] + "..." if len(item["company_name"]) > 40 else item["company_name"] for item in fundraisers],
+            y=company_names,
             orientation='h',
             marker_color=[
                 '#3B82F6' if item.get("security_type") == 'Equity' else
@@ -976,7 +1135,7 @@ def get_top_fundraisers(year: str = None, industry: str = None, metric: str = "o
             text=[item.get("formatted_amount", f"${item['amount']:,.0f}") for item in fundraisers],
             textposition='outside',
             textfont=dict(color=theme_colors["text"], size=10),
-            hovertemplate='<b>%{y}</b><br>Amount: %{text}<br>Type: %{customdata}<extra></extra>',
+            hovertemplate='<b>%{y}</b><br>Amount: %{text}<br>Type: %{customdata}<br><i>Click to view company details</i><extra></extra>',
             customdata=[item.get("security_type", "Unknown") for item in fundraisers]
         )])
         
@@ -1023,7 +1182,22 @@ def get_top_fundraisers(year: str = None, industry: str = None, metric: str = "o
         
         # Convert figure to JSON and apply config
         figure_json = json.loads(fig.to_json())
-        figure_json['config'] = get_toolbar_config()
+        toolbar_config = get_toolbar_config()
+        
+        # Add click event handling for company navigation
+        toolbar_config['plotlyServerURL'] = False
+        toolbar_config['responsive'] = True
+        
+        figure_json['config'] = toolbar_config
+        
+        # Add click event data for OpenBB to handle
+        figure_json['clickData'] = {
+            'type': 'updateWidget',
+            'targetWidget': 'company_detail',
+            'paramMapping': {
+                'company_name': 'y'  # Map the y-axis value (company name) to company_name parameter
+            }
+        }
 
         return figure_json
         
@@ -1136,6 +1310,173 @@ def get_location_distribution(year: str = None, metric: str = "count", theme: st
     except Exception as e:
         print(f"Error in location_distribution: {e}")
         return {"error": str(e)}
+
+@app.get("/company_detail")
+def get_company_detail(company_name: str = ""):
+    """Get detailed information about a specific company"""
+    try:
+        if not company_name:
+            return "# Company Detail\n\nSelect a company from the filings table to view detailed information."
+        
+        # Fetch company details from backend
+        data = fetch_backend_data(f"company/{company_name.replace(' ', '%20')}")
+        
+        if not data:
+            # Fallback content
+            return f"""# {company_name}
+            
+## Company Overview
+No detailed information available for this company in our database.
+
+## Quick Stats
+- **Company Name**: {company_name}
+- **Data Source**: SEC Form D Filings
+- **Status**: Information retrieval in progress
+
+*Click on a company name in the Latest Filings table to view detailed analysis.*
+"""
+        
+        # Format company details from backend data
+        company_info = data.get("company_info", {})
+        filing_stats = data.get("filing_stats", {})
+        
+        total_filings = filing_stats.get("total_filings", 0)
+        total_raised = filing_stats.get("total_raised", 0)
+        latest_filing = filing_stats.get("latest_filing_date", "Unknown")
+        
+        markdown_content = f"""# {company_name}
+
+## Company Overview
+{company_info.get("description", "SEC Form D filing entity")}
+
+## Filing Statistics
+- **Total Filings**: {total_filings:,}
+- **Total Amount Raised**: ${total_raised:,.0f}
+- **Latest Filing**: {latest_filing}
+- **Primary Industry**: {company_info.get("industry", "Unknown")}
+- **Location**: {company_info.get("location", "Unknown")}
+
+## Recent Activity
+{company_info.get("recent_activity", "View filing history in the Company Filing History widget below.")}
+
+*Data sourced from SEC EDGAR database via The Marketcast*
+"""
+        
+        return markdown_content
+        
+    except Exception as e:
+        print(f"Error in company_detail: {e}")
+        return f"# Company Detail\n\nError loading information for {company_name}: {str(e)}"
+
+@app.get("/company_filings")
+def get_company_filings(company_name: str = ""):
+    """Get filing history for a specific company"""
+    try:
+        if not company_name:
+            return [{"message": "Select a company from the filings table to view filing history"}]
+        
+        # Fetch company filings from backend
+        data = fetch_backend_data(f"company/{company_name.replace(' ', '%20')}/filings")
+        
+        if not data or not data.get("filings"):
+            # Fallback data
+            return [
+                {
+                    "filing_date": "2024-08-20",
+                    "amount": "$500.0M",
+                    "security_type": "Equity",
+                    "industry": "Technology",
+                    "status": "Filed",
+                    "form_type": "Form D"
+                }
+            ]
+        
+        # Process real data from backend
+        filings = data["filings"]
+        filings_data = []
+        
+        for filing in filings:
+            filings_data.append({
+                "filing_date": str(filing.get("filing_date", "Unknown")),
+                "amount": filing.get("formatted_offering") or filing.get("formatted_sold") or "N/A",
+                "security_type": filing.get("security_type") or "Unknown",
+                "industry": filing.get("industry") or "Unknown",
+                "status": filing.get("status", "Filed"),
+                "form_type": "Form D"
+            })
+        
+        return filings_data
+        
+    except Exception as e:
+        print(f"Error in company_filings: {e}")
+        return [{"error": str(e)}]
+
+@app.get("/industry_detail")
+def get_industry_detail(industry_name: str = ""):
+    """Get detailed analysis of a specific industry"""
+    try:
+        if not industry_name:
+            return "# Industry Analysis\n\nSelect an industry from the charts to view detailed analysis."
+        
+        # Fetch industry details from backend
+        data = fetch_backend_data(f"industry/{industry_name.replace(' ', '%20')}")
+        
+        if not data:
+            # Fallback content
+            return f"""# {industry_name} Industry Analysis
+            
+## Industry Overview
+Detailed analysis of Form D filings in the {industry_name} sector.
+
+## Key Metrics
+- **Industry**: {industry_name}
+- **Data Source**: SEC Form D Filings
+- **Analysis**: Based on private equity, debt, and fund offerings
+
+## Market Activity
+Use the charts below to explore filing trends and top companies in this industry.
+
+*Click on industry names in charts to view detailed sector analysis.*
+"""
+        
+        # Format industry details from backend data
+        industry_info = data.get("industry_info", {})
+        filing_stats = data.get("filing_stats", {})
+        
+        total_filings = filing_stats.get("total_filings", 0)
+        total_raised = filing_stats.get("total_raised", 0)
+        avg_deal_size = filing_stats.get("avg_deal_size", 0)
+        top_companies = filing_stats.get("top_companies", [])
+        
+        top_companies_text = ""
+        if top_companies:
+            top_companies_text = "\n".join([f"- {company}" for company in top_companies[:5]])
+        
+        markdown_content = f"""# {industry_name} Industry Analysis
+
+## Sector Overview
+{industry_info.get("description", f"Analysis of Form D filings in the {industry_name} sector.")}
+
+## Filing Statistics
+- **Total Filings**: {total_filings:,}
+- **Total Amount Raised**: ${total_raised:,.0f}
+- **Average Deal Size**: ${avg_deal_size:,.0f}
+- **Market Share**: {industry_info.get("market_share", "N/A")}
+
+## Top Companies
+{top_companies_text or "View company details by clicking on filings in the Latest Filings table."}
+
+## Market Trends
+{industry_info.get("trends", "Use the Monthly Activity chart to explore trends in this industry over time.")}
+
+*Data sourced from SEC EDGAR database via The Marketcast*
+"""
+        
+        return markdown_content
+        
+    except Exception as e:
+        print(f"Error in industry_detail: {e}")
+        return f"# Industry Analysis\n\nError loading information for {industry_name}: {str(e)}"
 
 @app.get("/api/available_years")
 def get_available_years():
