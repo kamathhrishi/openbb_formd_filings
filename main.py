@@ -18,17 +18,72 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# Configure CORS
+# Define allowed origins for CORS (Cross-Origin Resource Sharing)
+# This restricts which domains can access the API
+origins = [
+    "https://pro.openbb.co",
+]
+
+# Configure CORS middleware to handle cross-origin requests
+# This allows the specified origins to make requests to the API
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=origins,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["*"],  # Allow all HTTP methods
+    allow_headers=["*"],  # Allow all headers
 )
 
 # Backend configuration
 BACKEND_URL = os.getenv("FORM_D_BACKEND_URL", "https://web-production-570e.up.railway.app")
+
+def get_theme_colors(theme: str = "dark"):
+    """Get theme-specific colors for charts"""
+    if theme == "light":
+        return {
+            "main_line": "#1f77b4",
+            "background": "white",
+            "text": "black",
+            "grid": "rgba(0,0,0,0.1)"
+        }
+    else:  # dark theme
+        return {
+            "main_line": "#3B82F6",
+            "background": "rgba(0,0,0,0)",
+            "text": "white",
+            "grid": "rgba(255,255,255,0.1)"
+        }
+
+def get_toolbar_config():
+    """Get standard toolbar configuration for charts"""
+    return {
+        'displayModeBar': True,
+        'displaylogo': False,
+        'modeBarButtonsToRemove': [
+            'zoom2d', 'pan2d', 'select2d', 'lasso2d', 'zoomIn2d', 'zoomOut2d',
+            'autoScale2d', 'resetScale2d', 'hoverClosestCartesian', 'hoverCompareCartesian'
+        ],
+        'scrollZoom': False
+    }
+
+def base_layout(theme: str = "dark"):
+    """Get base layout configuration for charts"""
+    colors = get_theme_colors(theme)
+    return {
+        'plot_bgcolor': colors["background"],
+        'paper_bgcolor': colors["background"],
+        'font': {'color': colors["text"]},
+        'xaxis': {
+            'gridcolor': colors["grid"],
+            'tickcolor': colors["text"],
+            'titlefont': {'color': colors["text"]}
+        },
+        'yaxis': {
+            'gridcolor': colors["grid"],
+            'tickcolor': colors["text"],
+            'titlefont': {'color': colors["text"]}
+        }
+    }
 
 def fetch_backend_data(endpoint):
     """Fetch data from Form D backend with error handling"""
@@ -57,7 +112,11 @@ def read_root():
 
 @app.get("/widgets.json")
 def get_widgets():
-    """Form D analytics widget configuration"""
+    """Widgets configuration file for the OpenBB Workspace
+
+    Returns:
+        JSONResponse: The contents of widgets.json file
+    """
     widgets_config = {
         "form_d_intro": {
             "name": "Form D Filings Dashboard",
@@ -85,6 +144,7 @@ def get_widgets():
             "endpoint": "security_types",
             "gridData": {"w": 600, "h": 400},
             "source": "The Marketcast",
+            "raw": True,
             "params": [
                 {
                     "paramName": "year",
@@ -132,6 +192,7 @@ def get_widgets():
             "endpoint": "top_industries",
             "gridData": {"w": 600, "h": 400},
             "source": "The Marketcast",
+            "raw": True,
             "params": [
                 {
                     "paramName": "year",
@@ -179,6 +240,7 @@ def get_widgets():
             "endpoint": "monthly_activity", 
             "gridData": {"w": 1200, "h": 500},
             "source": "The Marketcast",
+            "raw": True,
             "params": [
                 {
                     "paramName": "metric",
@@ -219,6 +281,7 @@ def get_widgets():
             "endpoint": "top_fundraisers",
             "gridData": {"w": 1200, "h": 600},
             "source": "The Marketcast",
+            "raw": True,
             "params": [
                 {
                     "paramName": "year",
@@ -279,6 +342,7 @@ def get_widgets():
             "endpoint": "location_distribution",
             "gridData": {"w": 1200, "h": 600},
             "source": "The Marketcast",
+            "raw": True,
             "params": [
                 {
                     "paramName": "year",
@@ -324,7 +388,11 @@ def get_widgets():
 
 @app.get("/apps.json")
 def get_apps():
-    """Form D analytics dashboard app configuration"""
+    """Apps configuration file for the OpenBB Workspace
+
+    Returns:
+        JSONResponse: The contents of apps.json file
+    """
     apps_config = [
         {
             "name": "Form D Analytics Dashboard",
@@ -473,7 +541,7 @@ def get_latest_filings():
         return [{"error": str(e)}]
 
 @app.get("/security_types")
-def get_security_types(year: str = None, metric: str = "count"):
+def get_security_types(year: str = None, metric: str = "count", theme: str = "dark", raw: bool = False):
     """Get security type distribution chart with filtering options"""
     try:
         print(f"🔍 Fetching security type distribution data... (year: {year}, metric: {metric})")
@@ -501,6 +569,12 @@ def get_security_types(year: str = None, metric: str = "count"):
         else:
             distribution = data["distribution"]
         
+        # OPTIONAL - If raw is True, return the data as a list of dictionaries
+        # Otherwise, return the data as a Plotly figure
+        # This is useful when you want to make sure the AI can see the data
+        if raw:
+            return distribution
+        
         # Calculate total
         total_value = sum(item.get("value", 0) for item in distribution)
         
@@ -517,6 +591,9 @@ def get_security_types(year: str = None, metric: str = "count"):
             top_4.append(other_item)
         
         final_data = top_4
+        
+        # Get theme colors
+        theme_colors = get_theme_colors(theme)
         colors = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6']
         # Add filtering context to title
         filter_context = []
@@ -546,32 +623,32 @@ def get_security_types(year: str = None, metric: str = "count"):
             hovertemplate='<b>%{label}</b><br>Filings: %{value:,}<br>Percentage: %{percent}<extra></extra>'
         )])
         
-        fig.update_layout(
-            title=dict(
-                text=f"Security Type Distribution<br><sub style='color:white'>{chart_title}</sub>",
-                x=0.5,
-                font=dict(size=16, color='white')
-            ),
-            height=400,
-            showlegend=True,
-            legend=dict(
-                orientation="v", 
-                yanchor="middle", 
-                y=0.5,
-                font=dict(size=12, color='white')
-            ),
-            plot_bgcolor='rgba(0,0,0,0)',
-            paper_bgcolor='rgba(0,0,0,0)',
-            dragmode=False,
-            modebar=dict(
-                remove=['zoom', 'pan', 'select', 'lasso', 'zoomIn', 'zoomOut', 'autoScale', 'resetScale'],
-                bgcolor='rgba(0,0,0,0)',
-                color='white',
-                activecolor='white'
-            )
-        )
+        # Apply base layout configuration
+        layout_config = base_layout(theme=theme)
+        layout_config.update({
+            'title': {
+                'text': f"Security Type Distribution<br><sub style='color:{theme_colors["text"]}'>{chart_title}</sub>",
+                'x': 0.5,
+                'font': {'size': 16, 'color': theme_colors["text"]}
+            },
+            'height': 400,
+            'showlegend': True,
+            'legend': {
+                'orientation': "v", 
+                'yanchor': "middle", 
+                'y': 0.5,
+                'font': {'size': 12, 'color': theme_colors["text"]}
+            },
+            'dragmode': False
+        })
+
+        fig.update_layout(layout_config)
         
-        return json.loads(fig.to_json())
+        # Convert figure to JSON and apply config
+        figure_json = json.loads(fig.to_json())
+        figure_json['config'] = get_toolbar_config()
+
+        return figure_json
         
     except Exception as e:
         print(f"❌ Error in security_types: {e}")
@@ -594,7 +671,7 @@ def get_security_types(year: str = None, metric: str = "count"):
         return json.loads(fallback_fig.to_json())
 
 @app.get("/top_industries") 
-def get_top_industries(year: str = None, metric: str = "count"):
+def get_top_industries(year: str = None, metric: str = "count", theme: str = "dark", raw: bool = False):
     """Get top 10 industries chart with filtering options"""
     try:
         # Build query parameters
@@ -622,16 +699,23 @@ def get_top_industries(year: str = None, metric: str = "count"):
         else:
             distribution = data["distribution"][:10]
         
+        # OPTIONAL - If raw is True, return the data as a list of dictionaries
+        if raw:
+            return distribution
+        
         distribution = sorted(distribution, key=lambda x: x["value"], reverse=False)
+        
+        # Get theme colors
+        theme_colors = get_theme_colors(theme)
         
         fig = go.Figure(data=[go.Bar(
             x=[item["value"] for item in distribution],
             y=[item["name"][:30] + "..." if len(item["name"]) > 30 else item["name"] for item in distribution],
             orientation='h',
-            marker_color='#3B82F6',
+            marker_color=theme_colors["main_line"],
             text=[f'{item["value"]:,}' for item in distribution],
             textposition='outside',
-            textfont=dict(color='white', size=12),
+            textfont=dict(color=theme_colors["text"], size=12),
             hovertemplate='<b>%{y}</b><br>Filings: %{x:,}<extra></extra>'
         )])
         
@@ -649,46 +733,45 @@ def get_top_industries(year: str = None, metric: str = "count"):
         filter_text = f" ({', '.join(filter_context)})" if filter_context else ""
         subtitle = f"Real Form D data - most active sectors{filter_text}"
         
-        fig.update_layout(
-            title=dict(
-                text=f"Top 10 Industries<br><sub style='color:white'>{subtitle}</sub>",
-                x=0.5,
-                font=dict(size=16, color='white')
-            ),
-            xaxis_title="Number of Filings",
-            height=400,
-            margin=dict(l=150, r=50, t=80, b=50),
-            xaxis=dict(
-                range=[0, max([item["value"] for item in distribution]) * 1.1],
-                title_font_color='white',
-                tickfont_color='white',
-                gridcolor='rgba(255,255,255,0.1)'
-            ),
-            yaxis=dict(
-                title_font_color='white',
-                tickfont_color='white',
-                gridcolor='rgba(255,255,255,0.1)'
-            ),
-            plot_bgcolor='rgba(0,0,0,0)',
-            paper_bgcolor='rgba(0,0,0,0)',
-            title_font_color='white',
-            dragmode=False,
-            modebar=dict(
-                remove=['zoom', 'pan', 'select', 'lasso', 'zoomIn', 'zoomOut', 'autoScale', 'resetScale'],
-                bgcolor='rgba(0,0,0,0)',
-                color='white',
-                activecolor='white'
-            )
-        )
+        # Apply base layout configuration
+        layout_config = base_layout(theme=theme)
+        layout_config.update({
+            'title': {
+                'text': f"Top 10 Industries<br><sub style='color:{theme_colors["text"]}'>{subtitle}</sub>",
+                'x': 0.5,
+                'font': {'size': 16, 'color': theme_colors["text"]}
+            },
+            'xaxis_title': "Number of Filings",
+            'height': 400,
+            'margin': {'l': 150, 'r': 50, 't': 80, 'b': 50},
+            'xaxis': {
+                'range': [0, max([item["value"] for item in distribution]) * 1.1],
+                'title_font_color': theme_colors["text"],
+                'tickfont_color': theme_colors["text"],
+                'gridcolor': theme_colors["grid"]
+            },
+            'yaxis': {
+                'title_font_color': theme_colors["text"],
+                'tickfont_color': theme_colors["text"],
+                'gridcolor': theme_colors["grid"]
+            },
+            'dragmode': False
+        })
+
+        fig.update_layout(layout_config)
         
-        return json.loads(fig.to_json())
+        # Convert figure to JSON and apply config
+        figure_json = json.loads(fig.to_json())
+        figure_json['config'] = get_toolbar_config()
+
+        return figure_json
         
     except Exception as e:
         print(f"Error in top_industries: {e}")
         return {"error": str(e)}
 
 @app.get("/monthly_activity")
-def get_monthly_activity(metric: str = "count", industry: str = "all"):
+def get_monthly_activity(metric: str = "count", industry: str = "all", theme: str = "dark", raw: bool = False):
     """Get monthly filing activity time series with metric and industry selection"""
     try:
         # Build query parameters
@@ -740,6 +823,21 @@ def get_monthly_activity(metric: str = "count", industry: str = "all"):
                 debt_data = [item.get("debt_filings", 0) for item in time_series]
                 fund_data = [item.get("fund_filings", 0) for item in time_series]
         
+        # OPTIONAL - If raw is True, return the data as a list of dictionaries
+        if raw:
+            raw_data = []
+            for i, month in enumerate(months):
+                raw_data.append({
+                    "month": month,
+                    "equity": equity_data[i] if i < len(equity_data) else 0,
+                    "debt": debt_data[i] if i < len(debt_data) else 0,
+                    "fund": fund_data[i] if i < len(fund_data) else 0
+                })
+            return raw_data
+        
+        # Get theme colors
+        theme_colors = get_theme_colors(theme)
+        
         fig = go.Figure()
         
         # Update trace names and y-axis based on metric
@@ -784,51 +882,50 @@ def get_monthly_activity(metric: str = "count", industry: str = "all"):
         filter_text = f" ({', '.join(filter_parts)})" if filter_parts else ""
         subtitle = f"Real Form D data - {base_subtitle}{filter_text}"
         
-        fig.update_layout(
-            title=dict(
-                text=f"Monthly Filing Activity<br><sub style='color:white'>{subtitle}</sub>",
-                x=0.5,
-                font=dict(size=16, color='white')
-            ),
-            xaxis_title="Month", 
-            yaxis_title=y_title,
-            height=500, 
-            hovermode='x unified',
-            margin=dict(l=80, r=50, t=80, b=80),
-            xaxis=dict(
-                title_font_color='white',
-                tickfont_color='white',
-                gridcolor='rgba(255,255,255,0.1)'
-            ),
-            yaxis=dict(
-                range=[0, max(max(equity_data), max(debt_data), max(fund_data)) * 1.1],
-                title_font_color='white',
-                tickfont_color='white',
-                gridcolor='rgba(255,255,255,0.1)'
-            ),
-            legend=dict(
-                font=dict(color='white', size=12)
-            ),
-            plot_bgcolor='rgba(0,0,0,0)',
-            paper_bgcolor='rgba(0,0,0,0)',
-            title_font_color='white',
-            dragmode=False,
-            modebar=dict(
-                remove=['zoom', 'pan', 'select', 'lasso', 'zoomIn', 'zoomOut', 'autoScale', 'resetScale'],
-                bgcolor='rgba(0,0,0,0)',
-                color='white',
-                activecolor='white'
-            )
-        )
+        # Apply base layout configuration
+        layout_config = base_layout(theme=theme)
+        layout_config.update({
+            'title': {
+                'text': f"Monthly Filing Activity<br><sub style='color:{theme_colors["text"]}'>{subtitle}</sub>",
+                'x': 0.5,
+                'font': {'size': 16, 'color': theme_colors["text"]}
+            },
+            'xaxis_title': "Month", 
+            'yaxis_title': y_title,
+            'height': 500, 
+            'hovermode': 'x unified',
+            'margin': {'l': 80, 'r': 50, 't': 80, 'b': 80},
+            'xaxis': {
+                'title_font_color': theme_colors["text"],
+                'tickfont_color': theme_colors["text"],
+                'gridcolor': theme_colors["grid"]
+            },
+            'yaxis': {
+                'range': [0, max(max(equity_data), max(debt_data), max(fund_data)) * 1.1],
+                'title_font_color': theme_colors["text"],
+                'tickfont_color': theme_colors["text"],
+                'gridcolor': theme_colors["grid"]
+            },
+            'legend': {
+                'font': {'color': theme_colors["text"], 'size': 12}
+            },
+            'dragmode': False
+        })
+
+        fig.update_layout(layout_config)
         
-        return json.loads(fig.to_json())
+        # Convert figure to JSON and apply config
+        figure_json = json.loads(fig.to_json())
+        figure_json['config'] = get_toolbar_config()
+
+        return figure_json
         
     except Exception as e:
         print(f"Error in monthly_activity: {e}")
         return {"error": str(e)}
 
 @app.get("/top_fundraisers")
-def get_top_fundraisers(year: str = None, industry: str = None, metric: str = "offering_amount"):
+def get_top_fundraisers(year: str = None, industry: str = None, metric: str = "offering_amount", theme: str = "dark", raw: bool = False):
     """Get top 20 fundraisers chart with filtering options"""
     try:
         # Build query parameters
@@ -857,8 +954,15 @@ def get_top_fundraisers(year: str = None, industry: str = None, metric: str = "o
         else:
             fundraisers = data["top_fundraisers"][:20]
         
+        # OPTIONAL - If raw is True, return the data as a list of dictionaries
+        if raw:
+            return fundraisers
+        
         # Sort data in ascending order for proper display (smallest at bottom, largest at top)
         fundraisers = sorted(fundraisers, key=lambda x: x.get("amount", 0), reverse=False)
+        
+        # Get theme colors
+        theme_colors = get_theme_colors(theme)
         
         fig = go.Figure(data=[go.Bar(
             x=[item["amount"] for item in fundraisers],
@@ -871,7 +975,7 @@ def get_top_fundraisers(year: str = None, industry: str = None, metric: str = "o
             ],
             text=[item.get("formatted_amount", f"${item['amount']:,.0f}") for item in fundraisers],
             textposition='outside',
-            textfont=dict(color='white', size=10),
+            textfont=dict(color=theme_colors["text"], size=10),
             hovertemplate='<b>%{y}</b><br>Amount: %{text}<br>Type: %{customdata}<extra></extra>',
             customdata=[item.get("security_type", "Unknown") for item in fundraisers]
         )])
@@ -890,46 +994,45 @@ def get_top_fundraisers(year: str = None, industry: str = None, metric: str = "o
         filter_text = f" ({', '.join(filter_context)})" if filter_context else ""
         subtitle = f"Real Form D data - largest offering amounts{filter_text}"
         
-        fig.update_layout(
-            title=dict(
-                text=f"Top 20 Fundraisers<br><sub style='color:white'>{subtitle}</sub>",
-                x=0.5,
-                font=dict(size=16, color='white')
-            ),
-            xaxis_title="Offering Amount ($)",
-            height=600,
-            margin=dict(l=200, r=50, t=80, b=80),
-            xaxis=dict(
-                range=[0, max([item["amount"] for item in fundraisers]) * 1.1],
-                title_font_color='white',
-                tickfont_color='white',
-                gridcolor='rgba(255,255,255,0.1)'
-            ),
-            yaxis=dict(
-                title_font_color='white',
-                tickfont_color='white',
-                gridcolor='rgba(255,255,255,0.1)'
-            ),
-            plot_bgcolor='rgba(0,0,0,0)',
-            paper_bgcolor='rgba(0,0,0,0)',
-            title_font_color='white',
-            dragmode=False,
-            modebar=dict(
-                remove=['zoom', 'pan', 'select', 'lasso', 'zoomIn', 'zoomOut', 'autoScale', 'resetScale'],
-                bgcolor='rgba(0,0,0,0)',
-                color='white',
-                activecolor='white'
-            )
-        )
+        # Apply base layout configuration
+        layout_config = base_layout(theme=theme)
+        layout_config.update({
+            'title': {
+                'text': f"Top 20 Fundraisers<br><sub style='color:{theme_colors["text"]}'>{subtitle}</sub>",
+                'x': 0.5,
+                'font': {'size': 16, 'color': theme_colors["text"]}
+            },
+            'xaxis_title': "Offering Amount ($)",
+            'height': 600,
+            'margin': {'l': 200, 'r': 50, 't': 80, 'b': 80},
+            'xaxis': {
+                'range': [0, max([item["amount"] for item in fundraisers]) * 1.1],
+                'title_font_color': theme_colors["text"],
+                'tickfont_color': theme_colors["text"],
+                'gridcolor': theme_colors["grid"]
+            },
+            'yaxis': {
+                'title_font_color': theme_colors["text"],
+                'tickfont_color': theme_colors["text"],
+                'gridcolor': theme_colors["grid"]
+            },
+            'dragmode': False
+        })
+
+        fig.update_layout(layout_config)
         
-        return json.loads(fig.to_json())
+        # Convert figure to JSON and apply config
+        figure_json = json.loads(fig.to_json())
+        figure_json['config'] = get_toolbar_config()
+
+        return figure_json
         
     except Exception as e:
         print(f"Error in top_fundraisers: {e}")
         return {"error": str(e)}
 
 @app.get("/location_distribution")
-def get_location_distribution(year: str = None, metric: str = "count"):
+def get_location_distribution(year: str = None, metric: str = "count", theme: str = "dark", raw: bool = False):
     """Get geographic distribution of filings with filtering options"""
     try:
         print(f"🔍 Fetching location distribution data... (year: {year}, metric: {metric})")
@@ -962,6 +1065,13 @@ def get_location_distribution(year: str = None, metric: str = "count"):
             if len(distribution) > 0:
                 print(f"📊 Real data sample - {distribution[0]['name']}: {distribution[0]['value']} filings")
         
+        # OPTIONAL - If raw is True, return the data as a list of dictionaries
+        if raw:
+            return distribution
+        
+        # Get theme colors
+        theme_colors = get_theme_colors(theme)
+        
         fig = go.Figure(data=go.Choropleth(
             locations=[item["name"] for item in distribution],
             z=[item["value"] for item in distribution],
@@ -970,8 +1080,8 @@ def get_location_distribution(year: str = None, metric: str = "count"):
             text=[f'{item["name"]}: {item["value"]:,} filings' for item in distribution],
             hovertemplate='<b>%{text}</b><extra></extra>',
             colorbar=dict(
-                title=dict(text="Number of Filings", font=dict(color='white')),
-                tickfont=dict(color='white')
+                title=dict(text="Number of Filings", font=dict(color=theme_colors["text"])),
+                tickfont=dict(color=theme_colors["text"])
             )
         ))
         
@@ -989,40 +1099,39 @@ def get_location_distribution(year: str = None, metric: str = "count"):
         filter_text = f" ({', '.join(filter_context)})" if filter_context else ""
         subtitle = f"Real Form D data - filings by US state{filter_text}"
         
-        fig.update_layout(
-            title=dict(
-                text=f"Geographic Distribution<br><sub style='color:white'>{subtitle}</sub>",
-                x=0.5,
-                font=dict(size=16, color='white')
-            ),
-            geo=dict(
-                scope='usa',
-                projection=go.layout.geo.Projection(type='albers usa'),
-                showlakes=True,
-                lakecolor='rgb(255, 255, 255)',
-                bgcolor='rgba(0,0,0,0)',
-                landcolor='rgba(255,255,255,0.1)',
-                coastlinecolor='rgba(255,255,255,0.3)',
-                showland=True,
-                showcoastlines=True,
-                showocean=True,
-                oceancolor='rgba(0,0,0,0)'
-            ),
-            height=600,
-            margin=dict(l=50, r=50, t=80, b=50),
-            plot_bgcolor='rgba(0,0,0,0)',
-            paper_bgcolor='rgba(0,0,0,0)',
-            title_font_color='white',
-            dragmode=False,
-            modebar=dict(
-                remove=['zoom', 'pan', 'select', 'lasso', 'zoomIn', 'zoomOut', 'autoScale', 'resetScale'],
-                bgcolor='rgba(0,0,0,0)',
-                color='white',
-                activecolor='white'
-            )
-        )
+        # Apply base layout configuration
+        layout_config = base_layout(theme=theme)
+        layout_config.update({
+            'title': {
+                'text': f"Geographic Distribution<br><sub style='color:{theme_colors["text"]}'>{subtitle}</sub>",
+                'x': 0.5,
+                'font': {'size': 16, 'color': theme_colors["text"]}
+            },
+            'geo': {
+                'scope': 'usa',
+                'projection': {'type': 'albers usa'},
+                'showlakes': True,
+                'lakecolor': 'rgb(255, 255, 255)',
+                'bgcolor': theme_colors["background"],
+                'landcolor': 'rgba(255,255,255,0.1)',
+                'coastlinecolor': 'rgba(255,255,255,0.3)',
+                'showland': True,
+                'showcoastlines': True,
+                'showocean': True,
+                'oceancolor': theme_colors["background"]
+            },
+            'height': 600,
+            'margin': {'l': 50, 'r': 50, 't': 80, 'b': 50},
+            'dragmode': False
+        })
+
+        fig.update_layout(layout_config)
         
-        return json.loads(fig.to_json())
+        # Convert figure to JSON and apply config
+        figure_json = json.loads(fig.to_json())
+        figure_json['config'] = get_toolbar_config()
+
+        return figure_json
         
     except Exception as e:
         print(f"Error in location_distribution: {e}")
