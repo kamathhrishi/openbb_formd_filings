@@ -1,3 +1,6 @@
+# Import required libraries
+import json
+import os
 import requests
 from datetime import datetime
 import pandas as pd
