@@ -1063,20 +1063,19 @@ def get_location_distribution(year: str = None, metric: str = "count", theme: st
         
         print(f"📡 Location distribution endpoint: {endpoint}")
         
-        # Try alternative endpoint if year filtering doesn't work
-        if year and year != "all":
-            # First try with year parameter
-            data = fetch_backend_data(endpoint)
-            if not data or not data.get("distribution"):
-                print(f"⚠️ Year filtering failed, trying without year parameter")
-                # Fallback: try without year parameter and filter client-side
-                fallback_endpoint = f"charts/location-distribution?metric={metric}"
-                data = fetch_backend_data(fallback_endpoint)
-        else:
-            # No year filtering needed
-            data = fetch_backend_data(endpoint)
+        # Fetch data from backend
+        data = fetch_backend_data(endpoint)
         print(f"📊 Location distribution response: {data is not None} - has distribution: {data.get('distribution') is not None if data else 'No data'}")
         print(f"📊 Year parameter sent: {year}, Expected filtering: {year != 'all'}")
+        
+        # Log data size for debugging
+        if data and data.get("distribution"):
+            print(f"📊 Received {len(data['distribution'])} locations from backend")
+            # Log first few entries to see if data changes with year filter
+            if len(data['distribution']) > 0:
+                print(f"📊 Sample data: {data['distribution'][:3]}")
+        else:
+            print(f"📊 No distribution data received from backend")
         
         if not data or not data.get("distribution"):
             print(f"❌ Backend call failed - no data returned for endpoint: {endpoint}")
@@ -1146,11 +1145,18 @@ def get_location_distribution(year: str = None, metric: str = "count", theme: st
             filter_context.append("by Count")
         
         filter_text = f" ({', '.join(filter_context)})" if filter_context else ""
-        subtitle = f"Real Form D data - filings by US state{filter_text}"
         
-        # Add note if year filtering was attempted but may not be fully supported
+        # Calculate total for display in title
+        total_value = sum(item.get("value", 0) for item in distribution)
+        
+        # Create more informative subtitle
         if year and year != "all":
-            subtitle += " (Note: Year filtering may be limited by backend data)"
+            subtitle = f"Year {year} data - {total_value:,} total across {len(distribution)} states"
+        else:
+            subtitle = f"All years data - {total_value:,} total across {len(distribution)} states"
+        
+        if filter_text:
+            subtitle += f" {filter_text}"
         
         # Apply base layout configuration
         layout_config = base_layout(theme=theme)
