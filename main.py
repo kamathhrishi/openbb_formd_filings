@@ -69,10 +69,17 @@ def get_toolbar_config():
 def base_layout(theme: str = "dark"):
     """Get base layout configuration for charts"""
     colors = get_theme_colors(theme)
+    hover_bgcolor = '#111827' if theme != "light" else 'white'
+    hover_bordercolor = '#374151' if theme != "light" else '#E5E7EB'
     return {
         'plot_bgcolor': colors["background"],
         'paper_bgcolor': colors["background"],
         'font': {'color': colors["text"]},
+        'hoverlabel': {
+            'bgcolor': hover_bgcolor,
+            'bordercolor': hover_bordercolor,
+            'font': {'color': colors["text"]}
+        },
         'xaxis': {
             'gridcolor': colors["grid"],
             'tickcolor': colors["text"],
