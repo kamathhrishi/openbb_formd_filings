@@ -1053,15 +1053,24 @@ def get_location_distribution(year: str = None, metric: str = "count", theme: st
     try:
         print(f"🔍 Fetching location distribution data... (year: {year}, metric: {metric})")
         
-        # Build query parameters - always include metric parameter
-        params = [f"metric={metric}"]
+        # Build query parameters - match the working HTML approach
+        params = []
         if year and year != "all":
             params.append(f"year={year}")
+        if metric:
+            params.append(f"metric={metric}")
         
         query_string = "&".join(params)
         endpoint = f"charts/location-distribution?{query_string}"
         
         print(f"📡 Location distribution endpoint: {endpoint}")
+        
+        # Add cache-busting for year filtering to ensure fresh data
+        if year and year != "all":
+            import time
+            cache_buster = f"&_t={int(time.time())}"
+            endpoint += cache_buster
+            print(f"🔄 Added cache buster for year filtering: {endpoint}")
         
         # Fetch data from backend
         data = fetch_backend_data(endpoint)
@@ -1074,6 +1083,9 @@ def get_location_distribution(year: str = None, metric: str = "count", theme: st
             # Log first few entries to see if data changes with year filter
             if len(data['distribution']) > 0:
                 print(f"📊 Sample data: {data['distribution'][:3]}")
+                # Calculate total to see if it changes with year filtering
+                total_filings = sum(item.get("value", 0) for item in data['distribution'])
+                print(f"📊 Total filings across all states: {total_filings:,}")
         else:
             print(f"📊 No distribution data received from backend")
         
@@ -1151,7 +1163,12 @@ def get_location_distribution(year: str = None, metric: str = "count", theme: st
         
         # Create more informative subtitle
         if year and year != "all":
-            subtitle = f"Year {year} data - {total_value:,} total across {len(distribution)} states"
+            # Check if the data looks like it's actually filtered by year
+            # If total is very high (>100k), it's likely showing all years data
+            if total_value > 100000:
+                subtitle = f"Year {year} selected - {total_value:,} total (⚠️ May show all years data)"
+            else:
+                subtitle = f"Year {year} data - {total_value:,} total across {len(distribution)} states"
         else:
             subtitle = f"All years data - {total_value:,} total across {len(distribution)} states"
         
