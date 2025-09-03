@@ -1155,6 +1155,29 @@ def get_location_distribution(year: str = None, metric: str = "count", theme: st
         if raw:
             return distribution
         
+        # Helper to format currency as short form ($1.2M, $3.4B, $1.0T)
+        def format_currency_short(value: float) -> str:
+            absolute_value = abs(float(value))
+            if absolute_value >= 1_000_000_000_000:
+                return f"${value / 1_000_000_000_000:.1f}T"
+            if absolute_value >= 1_000_000_000:
+                return f"${value / 1_000_000_000:.1f}B"
+            if absolute_value >= 1_000_000:
+                return f"${value / 1_000_000:.1f}M"
+            if absolute_value >= 1_000:
+                return f"${value / 1_000:.1f}K"
+            return f"${value:,.0f}"
+
+        is_amount_metric = metric in ["offering_amount", "amount_sold"]
+
+        # Build hover texts based on metric type
+        if is_amount_metric:
+            hover_texts = [f"{item['name']}: {format_currency_short(item['value'])}" for item in distribution]
+            colorbar_title_text = "Amount ($)"
+        else:
+            hover_texts = [f"{item['name']}: {item['value']:,} filings" for item in distribution]
+            colorbar_title_text = "Number of Filings"
+
         # Get theme colors
         theme_colors = get_theme_colors(theme)
         
@@ -1163,10 +1186,10 @@ def get_location_distribution(year: str = None, metric: str = "count", theme: st
             z=[item["value"] for item in distribution],
             locationmode='USA-states',
             colorscale='Blues',
-            text=[f'{item["name"]}: {item["value"]:,} filings' for item in distribution],
+            text=hover_texts,
             hovertemplate='<b>%{text}</b><extra></extra>',
             colorbar=dict(
-                title=dict(text="Number of Filings", font=dict(color=theme_colors["text"])),
+                title=dict(text=colorbar_title_text, font=dict(color=theme_colors["text"])),
                 tickfont=dict(color=theme_colors["text"])
             )
         ))
@@ -1186,17 +1209,18 @@ def get_location_distribution(year: str = None, metric: str = "count", theme: st
         
         # Calculate total for display in title
         total_value = sum(item.get("value", 0) for item in distribution)
+        total_value_formatted = format_currency_short(total_value) if is_amount_metric else f"{total_value:,}"
         
         # Create more informative subtitle
         if year and year != "all":
             # Check if the data looks like it's actually filtered by year
             # If total is very high (>100k), it's likely showing all years data
             if total_value > 100000:
-                subtitle = f"Year {year} selected - {total_value:,} total (⚠️ May show all years data)"
+                subtitle = f"Year {year} selected - {total_value_formatted} total (⚠️ May show all years data)"
             else:
-                subtitle = f"Year {year} data - {total_value:,} total across {len(distribution)} states"
+                subtitle = f"Year {year} data - {total_value_formatted} total across {len(distribution)} states"
         else:
-            subtitle = f"All years data - {total_value:,} total across {len(distribution)} states"
+            subtitle = f"All years data - {total_value_formatted} total across {len(distribution)} states"
         
         if filter_text:
             subtitle += f" {filter_text}"
