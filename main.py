@@ -617,6 +617,13 @@ def get_security_types(year: str = None, metric: str = "count", theme: str = "da
         
         # Get theme colors
         theme_colors = get_theme_colors(theme)
+        hover_bgcolor = '#111827' if theme != 'light' else 'white'
+        hover_bordercolor = '#374151' if theme != 'light' else '#E5E7EB'
+        hover_font_color = theme_colors["text"]
+        # Hover label styling per theme (helps with x unified and standard hover)
+        hover_bgcolor = '#111827' if theme != 'light' else 'white'
+        hover_bordercolor = '#374151' if theme != 'light' else '#E5E7EB'
+        hover_font_color = theme_colors["text"]
         colors = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6']
         # Add filtering context to title
         filter_context = []
@@ -860,6 +867,10 @@ def get_monthly_activity(metric: str = "count", industry: str = "all", theme: st
         
         # Get theme colors
         theme_colors = get_theme_colors(theme)
+        # Define hover label theme-specific colors
+        hover_bgcolor = '#111827' if theme != 'light' else 'white'
+        hover_bordercolor = '#374151' if theme != 'light' else '#E5E7EB'
+        hover_font_color = theme_colors["text"]
         
         fig = go.Figure()
         
@@ -880,19 +891,22 @@ def get_monthly_activity(metric: str = "count", industry: str = "all", theme: st
         fig.add_trace(go.Scatter(
             x=months, y=equity_data, mode='lines+markers', name=equity_name,
             line=dict(color='#3B82F6', width=3), marker=dict(size=6),
-            hovertemplate=hover_tmpl
+            hovertemplate=hover_tmpl,
+            hoverlabel=dict(bgcolor=hover_bgcolor, bordercolor=hover_bordercolor, font=dict(color=hover_font_color))
         ))
         
         fig.add_trace(go.Scatter(
             x=months, y=debt_data, mode='lines+markers', name=debt_name,
             line=dict(color='#F59E0B', width=3), marker=dict(size=6),
-            hovertemplate=hover_tmpl
+            hovertemplate=hover_tmpl,
+            hoverlabel=dict(bgcolor=hover_bgcolor, bordercolor=hover_bordercolor, font=dict(color=hover_font_color))
         ))
         
         fig.add_trace(go.Scatter(
             x=months, y=fund_data, mode='lines+markers', name=fund_name,
             line=dict(color='#10B981', width=3), marker=dict(size=6),
-            hovertemplate=hover_tmpl
+            hovertemplate=hover_tmpl,
+            hoverlabel=dict(bgcolor=hover_bgcolor, bordercolor=hover_bordercolor, font=dict(color=hover_font_color))
         ))
         
         # Add filtering context to title
@@ -921,7 +935,7 @@ def get_monthly_activity(metric: str = "count", industry: str = "all", theme: st
             'xaxis_title': "Month", 
             'yaxis_title': y_title,
             'height': 500, 
-            'hovermode': 'x unified',
+            'hovermode': 'x',
             'margin': {'l': 80, 'r': 50, 't': 80, 'b': 80},
             'xaxis': {
                 'title_font_color': theme_colors["text"],
