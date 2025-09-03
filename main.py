@@ -1,6 +1,3 @@
-# Import required libraries
-import json
-import os
 import requests
 from datetime import datetime
 import pandas as pd
@@ -862,25 +859,30 @@ def get_monthly_activity(metric: str = "count", industry: str = "all", theme: st
             debt_name = 'Debt'  
             fund_name = 'Fund'
             y_title = "Amount ($)"
+            hover_tmpl = '<b>%{x}</b><br><b>%{fullData.name}</b>: $%{y:,.0f}<extra></extra>'
         else:
             equity_name = 'Equity Filings'
             debt_name = 'Debt Filings'
             fund_name = 'Fund Filings' 
             y_title = "Number of Filings"
+            hover_tmpl = '<b>%{x}</b><br><b>%{fullData.name}</b>: %{y:,.0f} filings<extra></extra>'
         
         fig.add_trace(go.Scatter(
             x=months, y=equity_data, mode='lines+markers', name=equity_name,
-            line=dict(color='#3B82F6', width=3), marker=dict(size=6)
+            line=dict(color='#3B82F6', width=3), marker=dict(size=6),
+            hovertemplate=hover_tmpl
         ))
         
         fig.add_trace(go.Scatter(
             x=months, y=debt_data, mode='lines+markers', name=debt_name,
-            line=dict(color='#F59E0B', width=3), marker=dict(size=6)
+            line=dict(color='#F59E0B', width=3), marker=dict(size=6),
+            hovertemplate=hover_tmpl
         ))
         
         fig.add_trace(go.Scatter(
             x=months, y=fund_data, mode='lines+markers', name=fund_name,
-            line=dict(color='#10B981', width=3), marker=dict(size=6)
+            line=dict(color='#10B981', width=3), marker=dict(size=6),
+            hovertemplate=hover_tmpl
         ))
         
         # Add filtering context to title
