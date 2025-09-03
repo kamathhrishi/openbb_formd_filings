@@ -637,11 +637,37 @@ def get_security_types(year: str = None, metric: str = "count", theme: str = "da
             filter_context.append("by Count")
         
         filter_text = f" ({', '.join(filter_context)})" if filter_context else ""
-        chart_title = f"Total: {total_value:,}{filter_text}"
+        
+        # Format total value based on metric type
+        if metric in ["offering_amount", "amount_sold"]:
+            # Helper to format currency as short form
+            def format_currency_short(value: float) -> str:
+                absolute_value = abs(float(value))
+                if absolute_value >= 1_000_000_000_000:
+                    return f"${value / 1_000_000_000_000:.1f}T"
+                if absolute_value >= 1_000_000_000:
+                    return f"${value / 1_000_000_000:.1f}B"
+                if absolute_value >= 1_000_000:
+                    return f"${value / 1_000_000:.1f}M"
+                if absolute_value >= 1_000:
+                    return f"${value / 1_000:.1f}K"
+                return f"${value:,.0f}"
+            chart_title = f"Total: {format_currency_short(total_value)}{filter_text}"
+        else:
+            chart_title = f"Total: {total_value:,}{filter_text}"
         
         labels = [str(item["name"]) for item in final_data]
         values = [float(item["value"]) for item in final_data]
         
+        # Prepare hover template based on metric type
+        if metric in ["offering_amount", "amount_sold"]:
+            hover_template = '<b>%{label}</b><br>Amount: %{customdata}<br>Percentage: %{percent}<extra></extra>'
+            # Format values for hover display
+            formatted_values = [format_currency_short(val) for val in values]
+        else:
+            hover_template = '<b>%{label}</b><br>Filings: %{value:,}<br>Percentage: %{percent}<extra></extra>'
+            formatted_values = None
+
         fig = go.Figure(data=[go.Pie(
             labels=labels,
             values=values,
@@ -650,7 +676,8 @@ def get_security_types(year: str = None, metric: str = "count", theme: str = "da
             textinfo='label+percent',
             textposition='auto',
             textfont=dict(color='white', size=12),
-            hovertemplate='<b>%{label}</b><br>Filings: %{value:,}<br>Percentage: %{percent}<extra></extra>'
+            hovertemplate=hover_template,
+            customdata=formatted_values
         )])
         
         # Apply base layout configuration
@@ -738,15 +765,39 @@ def get_top_industries(year: str = None, metric: str = "count", theme: str = "da
         # Get theme colors
         theme_colors = get_theme_colors(theme)
         
+        # Helper to format currency as short form
+        def format_currency_short(value: float) -> str:
+            absolute_value = abs(float(value))
+            if absolute_value >= 1_000_000_000_000:
+                return f"${value / 1_000_000_000_000:.1f}T"
+            if absolute_value >= 1_000_000_000:
+                return f"${value / 1_000_000_000:.1f}B"
+            if absolute_value >= 1_000_000:
+                return f"${value / 1_000_000:.1f}M"
+            if absolute_value >= 1_000:
+                return f"${value / 1_000:.1f}K"
+            return f"${value:,.0f}"
+        
+        # Prepare text and hover template based on metric type
+        if metric in ["offering_amount", "amount_sold"]:
+            text_values = [format_currency_short(item["value"]) for item in distribution]
+            hover_template = '<b>%{y}</b><br>Amount: %{customdata}<extra></extra>'
+            customdata = text_values
+        else:
+            text_values = [f'{item["value"]:,}' for item in distribution]
+            hover_template = '<b>%{y}</b><br>Filings: %{x:,}<extra></extra>'
+            customdata = None
+        
         fig = go.Figure(data=[go.Bar(
             x=[item["value"] for item in distribution],
             y=[item["name"][:30] + "..." if len(item["name"]) > 30 else item["name"] for item in distribution],
             orientation='h',
             marker_color=theme_colors["main_line"],
-            text=[f'{item["value"]:,}' for item in distribution],
+            text=text_values,
             textposition='outside',
             textfont=dict(color=theme_colors["text"], size=12),
-            hovertemplate='<b>%{y}</b><br>Filings: %{x:,}<extra></extra>'
+            hovertemplate=hover_template,
+            customdata=customdata
         )])
         
         # Add filtering context to title
@@ -771,7 +822,7 @@ def get_top_industries(year: str = None, metric: str = "count", theme: str = "da
                 'x': 0.5,
                 'font': {'size': 16, 'color': theme_colors["text"]}
             },
-            'xaxis_title': "Number of Filings",
+            'xaxis_title': "Amount ($)" if metric in ["offering_amount", "amount_sold"] else "Number of Filings",
             'height': 400,
             'margin': {'l': 150, 'r': 50, 't': 80, 'b': 50},
             'xaxis': {
@@ -865,6 +916,19 @@ def get_monthly_activity(metric: str = "count", industry: str = "all", theme: st
                 })
             return raw_data
         
+        # Helper to format currency as short form ($1.2M, $3.4B, $1.0T)
+        def format_currency_short(value: float) -> str:
+            absolute_value = abs(float(value))
+            if absolute_value >= 1_000_000_000_000:
+                return f"${value / 1_000_000_000_000:.1f}T"
+            if absolute_value >= 1_000_000_000:
+                return f"${value / 1_000_000_000:.1f}B"
+            if absolute_value >= 1_000_000:
+                return f"${value / 1_000_000:.1f}M"
+            if absolute_value >= 1_000:
+                return f"${value / 1_000:.1f}K"
+            return f"${value:,.0f}"
+
         # Get theme colors
         theme_colors = get_theme_colors(theme)
         # Define hover label theme-specific colors
@@ -880,7 +944,7 @@ def get_monthly_activity(metric: str = "count", industry: str = "all", theme: st
             debt_name = 'Debt'  
             fund_name = 'Fund'
             y_title = "Amount ($)"
-            hover_tmpl = '<b>%{x}</b><br><b>%{fullData.name}</b>: $%{y:,.0f}<extra></extra>'
+            hover_tmpl = '<b>%{x}</b><br><b>%{fullData.name}</b>: %{customdata}<extra></extra>'
         else:
             equity_name = 'Equity Filings'
             debt_name = 'Debt Filings'
@@ -888,10 +952,21 @@ def get_monthly_activity(metric: str = "count", industry: str = "all", theme: st
             y_title = "Number of Filings"
             hover_tmpl = '<b>%{x}</b><br><b>%{fullData.name}</b>: %{y:,.0f} filings<extra></extra>'
         
+        # Prepare custom data for currency formatting in tooltips
+        if metric in ["offering_amount", "amount_sold"]:
+            equity_customdata = [format_currency_short(val) for val in equity_data]
+            debt_customdata = [format_currency_short(val) for val in debt_data]
+            fund_customdata = [format_currency_short(val) for val in fund_data]
+        else:
+            equity_customdata = None
+            debt_customdata = None
+            fund_customdata = None
+        
         fig.add_trace(go.Scatter(
             x=months, y=equity_data, mode='lines+markers', name=equity_name,
             line=dict(color='#3B82F6', width=3), marker=dict(size=6),
             hovertemplate=hover_tmpl,
+            customdata=equity_customdata,
             hoverlabel=dict(bgcolor=hover_bgcolor, bordercolor=hover_bordercolor, font=dict(color=hover_font_color))
         ))
         
@@ -899,6 +974,7 @@ def get_monthly_activity(metric: str = "count", industry: str = "all", theme: st
             x=months, y=debt_data, mode='lines+markers', name=debt_name,
             line=dict(color='#F59E0B', width=3), marker=dict(size=6),
             hovertemplate=hover_tmpl,
+            customdata=debt_customdata,
             hoverlabel=dict(bgcolor=hover_bgcolor, bordercolor=hover_bordercolor, font=dict(color=hover_font_color))
         ))
         
@@ -906,6 +982,7 @@ def get_monthly_activity(metric: str = "count", industry: str = "all", theme: st
             x=months, y=fund_data, mode='lines+markers', name=fund_name,
             line=dict(color='#10B981', width=3), marker=dict(size=6),
             hovertemplate=hover_tmpl,
+            customdata=fund_customdata,
             hoverlabel=dict(bgcolor=hover_bgcolor, bordercolor=hover_bordercolor, font=dict(color=hover_font_color))
         ))
         
@@ -1003,8 +1080,24 @@ def get_top_fundraisers(year: str = None, industry: str = None, metric: str = "o
         # Sort data in ascending order for proper display (smallest at bottom, largest at top)
         fundraisers = sorted(fundraisers, key=lambda x: x.get("amount", 0), reverse=False)
         
+        # Helper to format currency as short form ($1.2M, $3.4B, $1.0T)
+        def format_currency_short(value: float) -> str:
+            absolute_value = abs(float(value))
+            if absolute_value >= 1_000_000_000_000:
+                return f"${value / 1_000_000_000_000:.1f}T"
+            if absolute_value >= 1_000_000_000:
+                return f"${value / 1_000_000_000:.1f}B"
+            if absolute_value >= 1_000_000:
+                return f"${value / 1_000_000:.1f}M"
+            if absolute_value >= 1_000:
+                return f"${value / 1_000:.1f}K"
+            return f"${value:,.0f}"
+
         # Get theme colors
         theme_colors = get_theme_colors(theme)
+        
+        # Format amounts for display
+        formatted_amounts = [format_currency_short(item.get("amount", 0)) for item in fundraisers]
         
         fig = go.Figure(data=[go.Bar(
             x=[item["amount"] for item in fundraisers],
@@ -1015,7 +1108,7 @@ def get_top_fundraisers(year: str = None, industry: str = None, metric: str = "o
                 '#F59E0B' if item.get("security_type") == 'Debt' else 
                 '#10B981' for item in fundraisers
             ],
-            text=[item.get("formatted_amount", f"${item['amount']:,.0f}") for item in fundraisers],
+            text=formatted_amounts,
             textposition='outside',
             textfont=dict(color=theme_colors["text"], size=10),
             hovertemplate='<b>%{y}</b><br>Amount: %{text}<br>Type: %{customdata}<extra></extra>',
