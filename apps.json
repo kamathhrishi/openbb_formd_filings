@@ -36,6 +36,7 @@
     },
     "groups": [
       {
+        "id": "year_group",
         "name": "Year Filter",
         "groupById": "year",
         "type": "text",
@@ -43,6 +44,7 @@
         "widgetIds": ["security_types", "top_industries", "top_fundraisers", "yearly_statistics"]
       },
       {
+        "id": "metric_group",
         "name": "Metric Filter", 
         "groupById": "metric",
         "type": "text",
@@ -50,6 +52,7 @@
         "widgetIds": ["security_types", "top_industries", "location_distribution", "yearly_statistics"]
       },
       {
+        "id": "industry_group",
         "name": "Industry Filter",
         "groupById": "industry", 
         "type": "text",
