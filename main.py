@@ -8,7 +8,8 @@ import plotly.graph_objects as go
 import plotly.express as px
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
 import uvicorn
 
 # Initialize FastAPI application
@@ -82,6 +83,23 @@ def is_amount_metric(metric: str) -> bool:
     """Check if metric is an amount-based metric"""
     return metric in ["offering_amount", "amount_sold"]
 
+def build_query_params(year: str = None, metric: str = None, industry: str = None, **kwargs) -> str:
+    """Build query parameters string for API endpoints"""
+    params = []
+    if year and year != "all":
+        params.append(f"year={year}")
+    if industry and industry != "all":
+        params.append(f"industry={industry}")
+    if metric and metric not in ["count", "offering_amount"]:  # Skip default values
+        params.append(f"metric={metric}")
+    
+    # Add any additional parameters
+    for key, value in kwargs.items():
+        if value and value != "all":
+            params.append(f"{key}={value}")
+    
+    return "&".join(params)
+
 def build_filter_context(year: str = None, metric: str = None, industry: str = None) -> str:
     """Build filter context string for chart titles"""
     filter_parts = []
@@ -97,6 +115,76 @@ def build_filter_context(year: str = None, metric: str = None, industry: str = N
         filter_parts.append("by Count")
     
     return f" ({', '.join(filter_parts)})" if filter_parts else ""
+
+def get_hover_template(metric: str, chart_type: str = "bar") -> str:
+    """Get hover template based on metric type and chart type"""
+    if is_amount_metric(metric):
+        if chart_type == "pie":
+            return '<b>%{label}</b><br>Amount: %{customdata}<br>Percentage: %{percent}<extra></extra>'
+        elif chart_type == "scatter":
+            return '<b>%{x}</b><br><b>%{fullData.name}</b>: %{customdata}<extra></extra>'
+        else:  # bar chart
+            return '<b>%{y}</b><br>Amount: %{customdata}<extra></extra>'
+    else:
+        if chart_type == "pie":
+            return '<b>%{label}</b><br>Filings: %{value:,}<br>Percentage: %{percent}<extra></extra>'
+        elif chart_type == "scatter":
+            return '<b>%{x}</b><br><b>%{fullData.name}</b>: %{y:,.0f} filings<extra></extra>'
+        else:  # bar chart
+            return '<b>%{y}</b><br>Filings: %{x:,}<extra></extra>'
+
+def format_text_values(values: list, metric: str) -> list:
+    """Format text values for display based on metric type"""
+    if is_amount_metric(metric):
+        return [format_currency_short(val) for val in values]
+    else:
+        return [f'{val:,.0f}' for val in values]
+
+def get_y_axis_title(metric: str) -> str:
+    """Get Y-axis title based on metric type"""
+    return "Amount ($)" if is_amount_metric(metric) else "Number of Filings"
+
+def build_chart_title(title: str, subtitle: str, theme_colors: dict) -> dict:
+    """Build chart title configuration with consistent formatting"""
+    return {
+        'text': f"{title}<br><sub style='color:{theme_colors['text']}'>{subtitle}</sub>",
+        'x': 0.5,
+        'font': {'size': 16, 'color': theme_colors["text"]}
+    }
+
+def get_security_type_color(security_type: str) -> str:
+    """Get color for security type"""
+    color_map = {
+        'Equity': '#3B82F6',
+        'Debt': '#F59E0B', 
+        'Fund': '#10B981'
+    }
+    return color_map.get(security_type, '#8B5CF6')
+
+def aggregate_company_data(data: list, key_field: str = "company_name", value_field: str = "amount") -> list:
+    """Aggregate data by company, keeping only the largest value per company"""
+    aggregated = {}
+    for item in data:
+        key = item.get(key_field, "Unknown")
+        value = item.get(value_field, 0)
+        
+        if key in aggregated:
+            # Keep only the largest amount for the same company
+            if value > aggregated[key][value_field]:
+                aggregated[key] = item
+        else:
+            aggregated[key] = item
+    
+    return list(aggregated.values())
+
+def sort_and_limit_data(data: list, sort_key: str, limit: int = None, reverse: bool = True) -> list:
+    """Sort data by key and optionally limit results"""
+    sorted_data = sorted(data, key=lambda x: x.get(sort_key, 0), reverse=reverse)
+    return sorted_data[:limit] if limit else sorted_data
+
+def get_total_value(data: list, value_field: str = "value") -> float:
+    """Calculate total value from a list of dictionaries"""
+    return sum(item.get(value_field, 0) for item in data)
 
 def figure_to_json(fig) -> dict:
     """Convert Plotly figure to JSON with toolbar config"""
@@ -159,370 +247,18 @@ def get_widgets():
     """Widgets configuration file for the OpenBB Workspace
 
     Returns:
-        JSONResponse: The contents of widgets.json file
+        FileResponse: The contents of widgets.json file
     """
-    widgets_config = {
-        "form_d_intro": {
-            "name": "Form D Filings Dashboard",
-            "description": "Introduction to Form D analytics and market insights",
-            "category": "Form D Analytics",
-            "type": "markdown",
-            "endpoint": "form_d_intro",
-            "gridData": {"w": 1200, "h": 300},
-            "source": "The Marketcast"
-        },
-        "latest_filings": {
-            "name": "Latest Form D Filings",
-            "description": "Most recent SEC Form D filings",
-            "category": "Form D Analytics",
-            "type": "table",
-            "endpoint": "latest_filings",
-            "gridData": {"w": 1200, "h": 400},
-            "source": "The Marketcast"
-        },
-        "security_types": {
-            "name": "Security Type Distribution",
-            "description": "Breakdown of filings by security type (Equity, Debt, Fund)",
-            "category": "Form D Analytics", 
-            "type": "chart",
-            "endpoint": "security_types",
-            "gridData": {"w": 600, "h": 400},
-            "source": "The Marketcast",
-            "raw": True,
-            "params": [
-                {
-                    "paramName": "year",
-                    "label": "Year",
-                    "type": "text",
-                    "value": "all",
-                    "options": [
-                        {"label": "All Years", "value": "all"},
-                        {"label": "2025", "value": "2025"},
-                        {"label": "2024", "value": "2024"},
-                        {"label": "2023", "value": "2023"},
-                        {"label": "2022", "value": "2022"},
-                        {"label": "2021", "value": "2021"},
-                        {"label": "2020", "value": "2020"},
-                        {"label": "2019", "value": "2019"},
-                        {"label": "2018", "value": "2018"},
-                        {"label": "2017", "value": "2017"},
-                        {"label": "2016", "value": "2016"},
-                        {"label": "2015", "value": "2015"},
-                        {"label": "2014", "value": "2014"},
-                        {"label": "2013", "value": "2013"},
-                        {"label": "2012", "value": "2012"},
-                        {"label": "2011", "value": "2011"},
-                        {"label": "2010", "value": "2010"},
-                        {"label": "2009", "value": "2009"}
-                    ]
-                },
-                {
-                    "paramName": "metric",
-                    "label": "Metric",
-                    "type": "text",
-                    "value": "count",
-                    "options": [
-                        {"label": "Filing Count", "value": "count"},
-                        {"label": "Offering Amount", "value": "offering_amount"},
-                        {"label": "Amount Sold", "value": "amount_sold"}
-                    ]
-                }
-            ]
-        },
-        "top_industries": {
-            "name": "Top 10 Industries",
-            "description": "Most active industries by filing count",
-            "category": "Form D Analytics",
-            "type": "chart", 
-            "endpoint": "top_industries",
-            "gridData": {"w": 600, "h": 400},
-            "source": "The Marketcast",
-            "raw": True,
-            "params": [
-                {
-                    "paramName": "year",
-                    "label": "Year",
-                    "type": "text",
-                    "value": "all",
-                    "options": [
-                        {"label": "All Years", "value": "all"},
-                        {"label": "2025", "value": "2025"},
-                        {"label": "2024", "value": "2024"},
-                        {"label": "2023", "value": "2023"},
-                        {"label": "2022", "value": "2022"},
-                        {"label": "2021", "value": "2021"},
-                        {"label": "2020", "value": "2020"},
-                        {"label": "2019", "value": "2019"},
-                        {"label": "2018", "value": "2018"},
-                        {"label": "2017", "value": "2017"},
-                        {"label": "2016", "value": "2016"},
-                        {"label": "2015", "value": "2015"},
-                        {"label": "2014", "value": "2014"},
-                        {"label": "2013", "value": "2013"},
-                        {"label": "2012", "value": "2012"},
-                        {"label": "2011", "value": "2011"},
-                        {"label": "2010", "value": "2010"},
-                        {"label": "2009", "value": "2009"}
-                    ]
-                },
-                {
-                    "paramName": "metric",
-                    "label": "Metric",
-                    "type": "text",
-                    "value": "count",
-                    "options": [
-                        {"label": "Filing Count", "value": "count"},
-                        {"label": "Offering Amount", "value": "offering_amount"},
-                        {"label": "Amount Sold", "value": "amount_sold"}
-                    ]
-                }
-            ]
-        },
-        "monthly_activity": {
-            "name": "Monthly Filing Activity",
-            "description": "Time series of Form D filings by security type",
-            "category": "Form D Analytics",
-            "type": "chart",
-            "endpoint": "monthly_activity", 
-            "gridData": {"w": 1200, "h": 500},
-            "source": "The Marketcast",
-            "raw": True,
-            "params": [
-                {
-                    "paramName": "metric",
-                    "label": "Metric",
-                    "type": "text",
-                    "value": "count",
-                    "options": [
-                        {"label": "Filing Count", "value": "count"},
-                        {"label": "Offering Amount", "value": "offering_amount"},
-                        {"label": "Amount Sold", "value": "amount_sold"}
-                    ]
-                },
-                {
-                    "paramName": "industry",
-                    "label": "Industry",
-                    "type": "text",
-                    "value": "all",
-                    "options": [
-                        {"label": "All Industries", "value": "all"},
-                        {"label": "Pooled Investment Fund", "value": "Pooled Investment Fund"},
-                        {"label": "Other", "value": "Other"},
-                        {"label": "Other Technology", "value": "Other Technology"},
-                        {"label": "Commercial", "value": "Commercial"},
-                        {"label": "Other Health Care", "value": "Other Health Care"},
-                        {"label": "Other Real Estate", "value": "Other Real Estate"},
-                        {"label": "Residential", "value": "Residential"},
-                        {"label": "Biotechnology", "value": "Biotechnology"},
-                        {"label": "REITS and Finance", "value": "REITS and Finance"},
-                        {"label": "Investing", "value": "Investing"},
-                        {"label": "Oil and Gas", "value": "Oil and Gas"},
-                        {"label": "Manufacturing", "value": "Manufacturing"},
-                        {"label": "Other Banking and Financial Services", "value": "Other Banking and Financial Services"},
-                        {"label": "Retailing", "value": "Retailing"},
-                        {"label": "Other Energy", "value": "Other Energy"},
-                        {"label": "Pharmaceuticals", "value": "Pharmaceuticals"},
-                        {"label": "Business Services", "value": "Business Services"},
-                        {"label": "Restaurants", "value": "Restaurants"},
-                        {"label": "Computers", "value": "Computers"}
-                    ]
-                }
-            ]
-        },
-        "top_fundraisers": {
-            "name": "Top 20 Fundraisers",
-            "description": "Companies with largest offering amounts",
-            "category": "Form D Analytics",
-            "type": "chart",
-            "endpoint": "top_fundraisers",
-            "gridData": {"w": 1200, "h": 600},
-            "source": "The Marketcast",
-            "raw": True,
-            "params": [
-                {
-                    "paramName": "year",
-                    "label": "Year",
-                    "type": "text",
-                    "value": "all",
-                    "options": [
-                        {"label": "All Years", "value": "all"},
-                        {"label": "2025", "value": "2025"},
-                        {"label": "2024", "value": "2024"},
-                        {"label": "2023", "value": "2023"},
-                        {"label": "2022", "value": "2022"},
-                        {"label": "2021", "value": "2021"},
-                        {"label": "2020", "value": "2020"},
-                        {"label": "2019", "value": "2019"},
-                        {"label": "2018", "value": "2018"},
-                        {"label": "2017", "value": "2017"},
-                        {"label": "2016", "value": "2016"},
-                        {"label": "2015", "value": "2015"},
-                        {"label": "2014", "value": "2014"},
-                        {"label": "2013", "value": "2013"},
-                        {"label": "2012", "value": "2012"},
-                        {"label": "2011", "value": "2011"},
-                        {"label": "2010", "value": "2010"},
-                        {"label": "2009", "value": "2009"}
-                    ]
-                },
-                {
-                    "paramName": "industry",
-                    "label": "Industry",
-                    "type": "text",
-                    "value": "all",
-                    "options": [
-                        {"label": "All Industries", "value": "all"},
-                        {"label": "Pooled Investment Fund", "value": "Pooled Investment Fund"},
-                        {"label": "Other", "value": "Other"},
-                        {"label": "Other Technology", "value": "Other Technology"},
-                        {"label": "Commercial", "value": "Commercial"},
-                        {"label": "Other Health Care", "value": "Other Health Care"},
-                        {"label": "Other Real Estate", "value": "Other Real Estate"},
-                        {"label": "Residential", "value": "Residential"},
-                        {"label": "Biotechnology", "value": "Biotechnology"},
-                        {"label": "REITS and Finance", "value": "REITS and Finance"},
-                        {"label": "Investing", "value": "Investing"},
-                        {"label": "Oil and Gas", "value": "Oil and Gas"}
-                    ]
-                },
-                {
-                    "paramName": "metric",
-                    "label": "Metric",
-                    "type": "text",
-                    "value": "offering_amount",
-                    "options": [
-                        {"label": "Offering Amount", "value": "offering_amount"},
-                        {"label": "Amount Sold", "value": "amount_sold"}
-                    ]
-                }
-            ]
-        },
-        "location_distribution": {
-            "name": "Geographic Distribution",
-            "description": "Form D filings by US state",
-            "category": "Form D Analytics",
-            "type": "chart",
-            "endpoint": "location_distribution",
-            "gridData": {"w": 1200, "h": 600},
-            "source": "The Marketcast",
-            "raw": True,
-            "params": [
-                {
-                    "paramName": "metric",
-                    "label": "Metric",
-                    "type": "text",
-                    "value": "count",
-                    "options": [
-                        {"label": "Filing Count", "value": "count"},
-                        {"label": "Offering Amount", "value": "offering_amount"},
-                        {"label": "Amount Sold", "value": "amount_sold"}
-                    ]
-                }
-            ]
-        },
-        "yearly_statistics": {
-            "name": "Yearly Statistics",
-            "description": "Annual totals for filings, amounts raised, and offerings by year",
-            "category": "Form D Analytics",
-            "type": "chart",
-            "endpoint": "yearly_statistics",
-            "gridData": {"w": 1200, "h": 500},
-            "source": "The Marketcast",
-            "raw": True,
-            "params": [
-                {
-                    "paramName": "metric",
-                    "label": "Metric",
-                    "type": "text",
-                    "value": "count",
-                    "options": [
-                        {"label": "Filing Count", "value": "count"},
-                        {"label": "Offering Amount", "value": "offering_amount"},
-                        {"label": "Amount Sold", "value": "amount_sold"}
-                    ]
-                },
-                {
-                    "paramName": "industry",
-                    "label": "Industry",
-                    "type": "text",
-                    "value": "all",
-                    "options": [
-                        {"label": "All Industries", "value": "all"},
-                        {"label": "Pooled Investment Fund", "value": "Pooled Investment Fund"},
-                        {"label": "Other", "value": "Other"},
-                        {"label": "Other Technology", "value": "Other Technology"},
-                        {"label": "Commercial", "value": "Commercial"},
-                        {"label": "Other Health Care", "value": "Other Health Care"},
-                        {"label": "Other Real Estate", "value": "Other Real Estate"},
-                        {"label": "Residential", "value": "Residential"},
-                        {"label": "Biotechnology", "value": "Biotechnology"},
-                        {"label": "REITS and Finance", "value": "REITS and Finance"},
-                        {"label": "Investing", "value": "Investing"},
-                        {"label": "Oil and Gas", "value": "Oil and Gas"},
-                        {"label": "Manufacturing", "value": "Manufacturing"},
-                        {"label": "Other Banking and Financial Services", "value": "Other Banking and Financial Services"},
-                        {"label": "Retailing", "value": "Retailing"},
-                        {"label": "Other Energy", "value": "Other Energy"},
-                        {"label": "Pharmaceuticals", "value": "Pharmaceuticals"},
-                        {"label": "Business Services", "value": "Business Services"},
-                        {"label": "Restaurants", "value": "Restaurants"},
-                        {"label": "Computers", "value": "Computers"}
-                    ]
-                }
-            ]
-        }
-    }
-    
-    return JSONResponse(content=widgets_config)
+    return FileResponse("widgets.json", media_type="application/json")
 
 @app.get("/apps.json")
 def get_apps():
     """Apps configuration file for the OpenBB Workspace
 
     Returns:
-        JSONResponse: The contents of apps.json file
+        FileResponse: The contents of apps.json file
     """
-    apps_config = [
-        {
-            "name": "Form D Analytics Dashboard",
-            "img": "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=250&h=200&fit=crop",
-            "img_dark": "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=250&h=200&fit=crop", 
-            "img_light": "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=250&h=200&fit=crop",
-            "description": "SEC Form D filing analytics - private equity and debt fundraising insights",
-            "allowCustomization": True,
-            "tabs": {
-                "overview": {
-                    "id": "overview",
-                    "name": "Overview",
-                    "layout": [
-                        {"i": "form_d_intro", "x": 0, "y": 0, "w": 40, "h": 6},
-                        {"i": "latest_filings", "x": 0, "y": 6, "w": 40, "h": 12},
-                        {"i": "security_types", "x": 0, "y": 18, "w": 20, "h": 16},
-                        {"i": "top_industries", "x": 20, "y": 18, "w": 20, "h": 16}
-                    ]
-                },
-                "trends": {
-                    "id": "trends", 
-                    "name": "Market Trends",
-                    "layout": [
-                        {"i": "monthly_activity", "x": 0, "y": 0, "w": 40, "h": 20},
-                        {"i": "yearly_statistics", "x": 0, "y": 20, "w": 40, "h": 20},
-                        {"i": "top_fundraisers", "x": 0, "y": 40, "w": 40, "h": 24}
-                    ]
-                },
-                "geography": {
-                    "id": "geography",
-                    "name": "Geographic Analysis", 
-                    "layout": [
-                        {"i": "location_distribution", "x": 0, "y": 0, "w": 40, "h": 24}
-                    ]
-                }
-            },
-            "groups": []
-        }
-    ]
-    
-    return JSONResponse(content=apps_config)
+    return FileResponse("apps.json", media_type="application/json")
 
 @app.get("/form_d_intro")
 def get_form_d_intro():
@@ -595,13 +331,7 @@ def get_security_types(year: str = None, metric: str = "count", theme: str = "da
         print(f"🔍 Fetching security type distribution data... (year: {year}, metric: {metric})")
         
         # Build query parameters
-        params = []
-        if year and year != "all":
-            params.append(f"year={year}")
-        if metric and metric != "count":
-            params.append(f"metric={metric}")
-        
-        query_string = "&".join(params)
+        query_string = build_query_params(year=year, metric=metric)
         endpoint = f"charts/security-type-distribution?metric={metric}"
         if query_string:
             endpoint += f"&{query_string}"
@@ -620,17 +350,17 @@ def get_security_types(year: str = None, metric: str = "count", theme: str = "da
             return distribution
         
         # Calculate total
-        total_value = sum(item.get("value", 0) for item in distribution)
+        total_value = get_total_value(distribution)
         
         # Group data for chart display (Top 4 + Other)
-        display_data = sorted(distribution, key=lambda x: x.get("value", 0), reverse=True)
+        display_data = sort_and_limit_data(distribution, "value", reverse=True)
         top_4 = display_data[:4]
         
         if len(display_data) > 4:
             others = display_data[4:]
             other_item = {
                 "name": "All Others",
-                "value": sum(item.get("value", 0) for item in others)
+                "value": get_total_value(others)
             }
             top_4.append(other_item)
         
@@ -640,6 +370,7 @@ def get_security_types(year: str = None, metric: str = "count", theme: str = "da
         theme_colors = get_theme_colors(theme)
         hover_colors = get_hover_colors(theme)
         colors = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6']
+        
         # Add filtering context to title
         filter_text = build_filter_context(year=year, metric=metric)
         
@@ -652,14 +383,9 @@ def get_security_types(year: str = None, metric: str = "count", theme: str = "da
         labels = [str(item["name"]) for item in final_data]
         values = [float(item["value"]) for item in final_data]
         
-        # Prepare hover template based on metric type
-        if is_amount_metric(metric):
-            hover_template = '<b>%{label}</b><br>Amount: %{customdata}<br>Percentage: %{percent}<extra></extra>'
-            # Format values for hover display
-            formatted_values = [format_currency_short(val) for val in values]
-        else:
-            hover_template = '<b>%{label}</b><br>Filings: %{value:,}<br>Percentage: %{percent}<extra></extra>'
-            formatted_values = None
+        # Prepare hover template and formatted values
+        hover_template = get_hover_template(metric, "pie")
+        formatted_values = format_text_values(values, metric) if is_amount_metric(metric) else None
 
         fig = go.Figure(data=[go.Pie(
             labels=labels,
@@ -676,11 +402,7 @@ def get_security_types(year: str = None, metric: str = "count", theme: str = "da
         # Apply base layout configuration
         layout_config = base_layout(theme=theme)
         layout_config.update({
-            'title': {
-                'text': f"Security Type Distribution<br><sub style='color:{theme_colors["text"]}'>{chart_title}</sub>",
-                'x': 0.5,
-                'font': {'size': 16, 'color': theme_colors["text"]}
-            },
+            'title': build_chart_title("Security Type Distribution", chart_title, theme_colors),
             'height': 400,
             'showlegend': True,
             'legend': {
@@ -706,13 +428,7 @@ def get_top_industries(year: str = None, metric: str = "count", theme: str = "da
     """Get top 10 industries chart with filtering options"""
     try:
         # Build query parameters
-        params = []
-        if year and year != "all":
-            params.append(f"year={year}")
-        if metric and metric != "count":
-            params.append(f"metric={metric}")
-        
-        query_string = "&".join(params)
+        query_string = build_query_params(year=year, metric=metric)
         endpoint = f"charts/industry-distribution?metric={metric}"
         if query_string:
             endpoint += f"&{query_string}"
@@ -728,20 +444,16 @@ def get_top_industries(year: str = None, metric: str = "count", theme: str = "da
         if raw:
             return distribution
         
-        distribution = sorted(distribution, key=lambda x: x["value"], reverse=False)
+        distribution = sort_and_limit_data(distribution, "value", reverse=False)
         
         # Get theme colors
         theme_colors = get_theme_colors(theme)
         
         # Prepare text and hover template based on metric type
-        if is_amount_metric(metric):
-            text_values = [format_currency_short(item["value"]) for item in distribution]
-            hover_template = '<b>%{y}</b><br>Amount: %{customdata}<extra></extra>'
-            customdata = text_values
-        else:
-            text_values = [f'{item["value"]:,}' for item in distribution]
-            hover_template = '<b>%{y}</b><br>Filings: %{x:,}<extra></extra>'
-            customdata = None
+        values = [item["value"] for item in distribution]
+        text_values = format_text_values(values, metric)
+        hover_template = get_hover_template(metric, "bar")
+        customdata = text_values if is_amount_metric(metric) else None
         
         fig = go.Figure(data=[go.Bar(
             x=[item["value"] for item in distribution],
@@ -762,12 +474,8 @@ def get_top_industries(year: str = None, metric: str = "count", theme: str = "da
         # Apply base layout configuration
         layout_config = base_layout(theme=theme)
         layout_config.update({
-            'title': {
-                'text': f"Top 10 Industries<br><sub style='color:{theme_colors["text"]}'>{subtitle}</sub>",
-                'x': 0.5,
-                'font': {'size': 16, 'color': theme_colors["text"]}
-            },
-            'xaxis_title': "Amount ($)" if metric in ["offering_amount", "amount_sold"] else "Number of Filings",
+            'title': build_chart_title("Top 10 Industries", subtitle, theme_colors),
+            'xaxis_title': get_y_axis_title(metric),
             'height': 400,
             'margin': {'l': 150, 'r': 50, 't': 80, 'b': 50},
             'xaxis': {
@@ -932,9 +640,9 @@ def get_monthly_activity(metric: str = "count", industry: str = "all", theme: st
         
         # Prepare custom data for currency formatting in tooltips
         if is_amount_metric(metric):
-            equity_customdata = [format_currency_short(val) for val in equity_data]
-            debt_customdata = [format_currency_short(val) for val in debt_data]
-            fund_customdata = [format_currency_short(val) for val in fund_data]
+            equity_customdata = format_text_values(equity_data, metric)
+            debt_customdata = format_text_values(debt_data, metric)
+            fund_customdata = format_text_values(fund_data, metric)
         else:
             equity_customdata = None
             debt_customdata = None
@@ -994,11 +702,7 @@ def get_monthly_activity(metric: str = "count", industry: str = "all", theme: st
         # Apply base layout configuration
         layout_config = base_layout(theme=theme)
         layout_config.update({
-            'title': {
-                'text': f"Monthly Filing Activity<br><sub style='color:{theme_colors["text"]}'>{subtitle}</sub>",
-                'x': 0.5,
-                'font': {'size': 16, 'color': theme_colors["text"]}
-            },
+            'title': build_chart_title("Monthly Filing Activity", subtitle, theme_colors),
             'xaxis_title': "Month", 
             'yaxis_title': y_title,
             'height': 500, 
@@ -1035,15 +739,7 @@ def get_top_fundraisers(year: str = None, industry: str = None, metric: str = "o
     """Get top 20 fundraisers chart with filtering options"""
     try:
         # Build query parameters
-        params = []
-        if year and year != "all":
-            params.append(f"year={year}")
-        if industry and industry != "all":
-            params.append(f"industry={industry}")
-        if metric and metric != "offering_amount":
-            params.append(f"metric={metric}")
-        
-        query_string = "&".join(params)
+        query_string = build_query_params(year=year, industry=industry, metric=metric)
         endpoint = f"charts/top-fundraisers?metric={metric}"
         if query_string:
             endpoint += f"&{query_string}"
@@ -1056,33 +752,10 @@ def get_top_fundraisers(year: str = None, industry: str = None, metric: str = "o
         fundraisers = data["top_fundraisers"][:20]
         
         # Deduplicate companies by keeping only the largest filing per company
-        company_aggregated = {}
-        for item in fundraisers:
-            company_name = item.get("company_name", "Unknown Company")
-            amount = item.get("amount", 0)
-            security_type = item.get("security_type", "Unknown")
-            
-            if company_name in company_aggregated:
-                # Keep only the largest amount for the same company
-                if amount > company_aggregated[company_name]["amount"]:
-                    company_aggregated[company_name] = {
-                        "company_name": company_name,
-                        "amount": amount,
-                        "security_type": security_type
-                    }
-            else:
-                company_aggregated[company_name] = {
-                    "company_name": company_name,
-                    "amount": amount,
-                    "security_type": security_type
-                }
+        fundraisers = aggregate_company_data(fundraisers, "company_name", "amount")
         
-        # Convert back to list and sort by amount (descending for top selection)
-        fundraisers = list(company_aggregated.values())
-        fundraisers = sorted(fundraisers, key=lambda x: x.get("amount", 0), reverse=True)
-        
-        # Take top 20 after deduplication
-        fundraisers = fundraisers[:20]
+        # Sort by amount and take top 20
+        fundraisers = sort_and_limit_data(fundraisers, "amount", 20, reverse=True)
         
         # OPTIONAL - If raw is True, return the data as a list of dictionaries
         if raw:
@@ -1095,17 +768,14 @@ def get_top_fundraisers(year: str = None, industry: str = None, metric: str = "o
         theme_colors = get_theme_colors(theme)
         
         # Format amounts for display
-        formatted_amounts = [format_currency_short(item.get("amount", 0)) for item in fundraisers]
+        amounts = [item.get("amount", 0) for item in fundraisers]
+        formatted_amounts = format_text_values(amounts, metric)
         
         fig = go.Figure(data=[go.Bar(
             x=[item["amount"] for item in fundraisers],
             y=[item["company_name"][:40] + "..." if len(item["company_name"]) > 40 else item["company_name"] for item in fundraisers],
             orientation='h',
-            marker_color=[
-                '#3B82F6' if item.get("security_type") == 'Equity' else
-                '#F59E0B' if item.get("security_type") == 'Debt' else 
-                '#10B981' for item in fundraisers
-            ],
+            marker_color=[get_security_type_color(item.get("security_type")) for item in fundraisers],
             text=formatted_amounts,
             textposition='outside',
             textfont=dict(color=theme_colors["text"], size=10),
@@ -1120,12 +790,8 @@ def get_top_fundraisers(year: str = None, industry: str = None, metric: str = "o
         # Apply base layout configuration
         layout_config = base_layout(theme=theme)
         layout_config.update({
-            'title': {
-                'text': f"Top 20 Fundraisers<br><sub style='color:{theme_colors["text"]}'>{subtitle}</sub>",
-                'x': 0.5,
-                'font': {'size': 16, 'color': theme_colors["text"]}
-            },
-            'xaxis_title': "Offering Amount ($)",
+            'title': build_chart_title("Top 20 Fundraisers", subtitle, theme_colors),
+            'xaxis_title': get_y_axis_title(metric),
             'height': 600,
             'margin': {'l': 200, 'r': 50, 't': 80, 'b': 80},
             'xaxis': {
@@ -1158,13 +824,7 @@ def get_location_distribution(year: str = None, metric: str = "count", theme: st
         print(f"🔍 Fetching location distribution data... (year: {year}, metric: {metric})")
         
         # Build query parameters - match the working HTML approach
-        params = []
-        if year and year != "all":
-            params.append(f"year={year}")
-        if metric:
-            params.append(f"metric={metric}")
-        
-        query_string = "&".join(params)
+        query_string = build_query_params(year=year, metric=metric)
         endpoint = f"charts/location-distribution?{query_string}"
         
         print(f"📡 Location distribution endpoint: {endpoint}")
@@ -1203,12 +863,13 @@ def get_location_distribution(year: str = None, metric: str = "count", theme: st
             return distribution
         
         # Build hover texts based on metric type
+        values = [item['value'] for item in distribution]
         if is_amount_metric(metric):
-            hover_texts = [f"{item['name']}: {format_currency_short(item['value'])}" for item in distribution]
-            colorbar_title_text = "Amount ($)"
+            formatted_values = format_text_values(values, metric)
+            hover_texts = [f"{item['name']}: {formatted_values[i]}" for i, item in enumerate(distribution)]
         else:
             hover_texts = [f"{item['name']}: {item['value']:,} filings" for item in distribution]
-            colorbar_title_text = "Number of Filings"
+        colorbar_title_text = get_y_axis_title(metric)
 
         # Get theme colors
         theme_colors = get_theme_colors(theme)
@@ -1250,11 +911,7 @@ def get_location_distribution(year: str = None, metric: str = "count", theme: st
         # Apply base layout configuration
         layout_config = base_layout(theme=theme)
         layout_config.update({
-            'title': {
-                'text': f"Geographic Distribution<br><sub style='color:{theme_colors["text"]}'>{subtitle}</sub>",
-                'x': 0.5,
-                'font': {'size': 16, 'color': theme_colors["text"]}
-            },
+            'title': build_chart_title("Geographic Distribution", subtitle, theme_colors),
             'geo': {
                 'scope': 'usa',
                 'projection': {'type': 'albers usa'},
@@ -1357,14 +1014,9 @@ def get_yearly_statistics(metric: str = "count", industry: str = "all", theme: s
         values = [float(item["value"]) for item in yearly_data]
         
         # Format values for display
-        if is_amount_metric(metric):
-            text_values = [format_currency_short(val) for val in values]
-            y_title = "Amount ($)"
-            hover_template = '<b>%{x}</b><br>Amount: %{customdata}<extra></extra>'
-        else:
-            text_values = [f'{val:,.0f}' for val in values]
-            y_title = "Number of Filings"
-            hover_template = '<b>%{x}</b><br>Filings: %{y:,.0f}<extra></extra>'
+        text_values = format_text_values(values, metric)
+        y_title = get_y_axis_title(metric)
+        hover_template = get_hover_template(metric, "bar")
         
         # Create bar chart
         fig = go.Figure(data=[go.Bar(
@@ -1385,11 +1037,7 @@ def get_yearly_statistics(metric: str = "count", industry: str = "all", theme: s
         # Apply base layout configuration
         layout_config = base_layout(theme=theme)
         layout_config.update({
-            'title': {
-                'text': f"Yearly Statistics<br><sub style='color:{theme_colors["text"]}'>{subtitle}</sub>",
-                'x': 0.5,
-                'font': {'size': 16, 'color': theme_colors["text"]}
-            },
+            'title': build_chart_title("Yearly Statistics", subtitle, theme_colors),
             'xaxis_title': "Year",
             'yaxis_title': y_title,
             'height': 500,
