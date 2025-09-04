@@ -1,132 +1,309 @@
 {
-  "hello_world": {
-    "name": "Hello World",
-    "description": "A simple markdown widget that displays Hello World with market info",
-    "category": "Hello World",
+  "form_d_intro": {
+    "name": "Form D Filings Dashboard",
+    "description": "Introduction to Form D analytics and market insights",
+    "category": "Form D Analytics",
     "type": "markdown",
-    "endpoint": "hello_world",
-    "gridData": {"w": 1200, "h": 400},
-    "source": "None",
-    "params": [
-      {
-        "paramName": "name",
-        "value": "",
-        "label": "Name",
-        "type": "form",
-        "description": "Enter your name"
-      }
-    ]
+    "endpoint": "form_d_intro",
+    "gridData": {"w": 1200, "h": 300},
+    "source": "The Marketcast"
   },
-  "test_chart": {
-    "name": "Test Chart",
-    "description": "Test chart with sample data to verify Plotly integration works",
-    "category": "Testing",
-    "type": "chart", 
-    "endpoint": "test_chart",
-    "gridData": {"w": 800, "h": 400},
-    "source": "Sample Data"
-  },
-  "nasdaq_chart": {
-    "name": "NASDAQ Historical Chart",
-    "description": "Interactive candlestick chart showing NASDAQ Composite historical data with volume",
-    "category": "Market Data",
-    "type": "chart",
-    "endpoint": "nasdaq_chart",
-    "gridData": {"w": 1200, "h": 600},
-    "source": "Yahoo Finance",
-    "params": [
-      {
-        "paramName": "period",
-        "value": "1y",
-        "label": "Time Period",
-        "type": "form",
-        "description": "Select time period for historical data",
-        "options": [
-          {"label": "1 Month", "value": "1mo"},
-          {"label": "3 Months", "value": "3mo"},
-          {"label": "6 Months", "value": "6mo"},
-          {"label": "1 Year", "value": "1y"},
-          {"label": "2 Years", "value": "2y"},
-          {"label": "5 Years", "value": "5y"},
-          {"label": "Max", "value": "max"}
-        ]
-      },
-      {
-        "paramName": "interval",
-        "value": "1d",
-        "label": "Data Interval",
-        "type": "form", 
-        "description": "Select data interval",
-        "options": [
-          {"label": "Daily", "value": "1d"},
-          {"label": "5 Days", "value": "5d"},
-          {"label": "Weekly", "value": "1wk"},
-          {"label": "Monthly", "value": "1mo"},
-          {"label": "3 Months", "value": "3mo"}
-        ]
-      }
-    ]
-  },
-  "nasdaq_summary": {
-    "name": "NASDAQ Market Summary",
-    "description": "Current NASDAQ market summary with key metrics and price changes",
-    "category": "Market Data",
+  "latest_filings": {
+    "name": "Latest Form D Filings",
+    "description": "Most recent SEC Form D filings",
+    "category": "Form D Analytics",
     "type": "table",
-    "endpoint": "nasdaq_summary",
-    "gridData": {"w": 800, "h": 400},
-    "source": "Yahoo Finance",
-    "data": {
-      "table": {
-        "showAll": true,
-        "columnsDefs": [
-          {
-            "headerName": "Metric",
-            "field": "metric",
-            "width": 200
-          },
-          {
-            "headerName": "Value",
-            "field": "value",
-            "width": 150
-          },
-          {
-            "headerName": "Change",
-            "field": "change",
-            "width": 200
-          }
-        ]
-      }
-    }
+    "endpoint": "latest_filings",
+    "gridData": {"w": 1200, "h": 400},
+    "source": "The Marketcast"
   },
-  "stock_comparison": {
-    "name": "Stock Performance Comparison",
-    "description": "Compare multiple stocks performance over time (normalized percentage returns)",
-    "category": "Market Data",
+  "security_types": {
+    "name": "Security Type Distribution",
+    "description": "Breakdown of filings by security type (Equity, Debt, Fund)",
+    "category": "Form D Analytics", 
     "type": "chart",
-    "endpoint": "stock_comparison",
-    "gridData": {"w": 1200, "h": 600},
-    "source": "Yahoo Finance",
+    "endpoint": "security_types",
+    "gridData": {"w": 600, "h": 400},
+    "source": "The Marketcast",
+    "raw": true,
     "params": [
       {
-        "paramName": "symbols",
-        "value": "AAPL,GOOGL,MSFT",
-        "label": "Stock Symbols",
-        "type": "form",
-        "description": "Enter stock symbols separated by commas (e.g., AAPL,GOOGL,MSFT)"
+        "paramName": "year",
+        "label": "Year",
+        "type": "text",
+        "value": "all",
+        "options": [
+          {"label": "All Years", "value": "all"},
+          {"label": "2025", "value": "2025"},
+          {"label": "2024", "value": "2024"},
+          {"label": "2023", "value": "2023"},
+          {"label": "2022", "value": "2022"},
+          {"label": "2021", "value": "2021"},
+          {"label": "2020", "value": "2020"},
+          {"label": "2019", "value": "2019"},
+          {"label": "2018", "value": "2018"},
+          {"label": "2017", "value": "2017"},
+          {"label": "2016", "value": "2016"},
+          {"label": "2015", "value": "2015"},
+          {"label": "2014", "value": "2014"},
+          {"label": "2013", "value": "2013"},
+          {"label": "2012", "value": "2012"},
+          {"label": "2011", "value": "2011"},
+          {"label": "2010", "value": "2010"},
+          {"label": "2009", "value": "2009"}
+        ]
       },
       {
-        "paramName": "period",
-        "value": "1y",
-        "label": "Time Period",
-        "type": "form",
-        "description": "Select time period for comparison",
+        "paramName": "metric",
+        "label": "Metric",
+        "type": "text",
+        "value": "count",
         "options": [
-          {"label": "1 Month", "value": "1mo"},
-          {"label": "3 Months", "value": "3mo"},
-          {"label": "6 Months", "value": "6mo"},
-          {"label": "1 Year", "value": "1y"},
-          {"label": "2 Years", "value": "2y"},
-          {"label": "5 Years", "value": "5y"}
+          {"label": "Filing Count", "value": "count"},
+          {"label": "Offering Amount", "value": "offering_amount"},
+          {"label": "Amount Sold", "value": "amount_sold"}
+        ]
+      }
+    ]
+  },
+  "top_industries": {
+    "name": "Top 10 Industries",
+    "description": "Most active industries by filing count",
+    "category": "Form D Analytics",
+    "type": "chart", 
+    "endpoint": "top_industries",
+    "gridData": {"w": 600, "h": 400},
+    "source": "The Marketcast",
+    "raw": true,
+    "params": [
+      {
+        "paramName": "year",
+        "label": "Year",
+        "type": "text",
+        "value": "all",
+        "options": [
+          {"label": "All Years", "value": "all"},
+          {"label": "2025", "value": "2025"},
+          {"label": "2024", "value": "2024"},
+          {"label": "2023", "value": "2023"},
+          {"label": "2022", "value": "2022"},
+          {"label": "2021", "value": "2021"},
+          {"label": "2020", "value": "2020"},
+          {"label": "2019", "value": "2019"},
+          {"label": "2018", "value": "2018"},
+          {"label": "2017", "value": "2017"},
+          {"label": "2016", "value": "2016"},
+          {"label": "2015", "value": "2015"},
+          {"label": "2014", "value": "2014"},
+          {"label": "2013", "value": "2013"},
+          {"label": "2012", "value": "2012"},
+          {"label": "2011", "value": "2011"},
+          {"label": "2010", "value": "2010"},
+          {"label": "2009", "value": "2009"}
+        ]
+      },
+      {
+        "paramName": "metric",
+        "label": "Metric",
+        "type": "text",
+        "value": "count",
+        "options": [
+          {"label": "Filing Count", "value": "count"},
+          {"label": "Offering Amount", "value": "offering_amount"},
+          {"label": "Amount Sold", "value": "amount_sold"}
+        ]
+      }
+    ]
+  },
+  "monthly_activity": {
+    "name": "Monthly Filing Activity",
+    "description": "Time series of Form D filings by security type",
+    "category": "Form D Analytics",
+    "type": "chart",
+    "endpoint": "monthly_activity", 
+    "gridData": {"w": 1200, "h": 500},
+    "source": "The Marketcast",
+    "raw": true,
+    "params": [
+      {
+        "paramName": "metric",
+        "label": "Metric",
+        "type": "text",
+        "value": "count",
+        "options": [
+          {"label": "Filing Count", "value": "count"},
+          {"label": "Offering Amount", "value": "offering_amount"},
+          {"label": "Amount Sold", "value": "amount_sold"}
+        ]
+      },
+      {
+        "paramName": "industry",
+        "label": "Industry",
+        "type": "text",
+        "value": "all",
+        "options": [
+          {"label": "All Industries", "value": "all"},
+          {"label": "Pooled Investment Fund", "value": "Pooled Investment Fund"},
+          {"label": "Other", "value": "Other"},
+          {"label": "Other Technology", "value": "Other Technology"},
+          {"label": "Commercial", "value": "Commercial"},
+          {"label": "Other Health Care", "value": "Other Health Care"},
+          {"label": "Other Real Estate", "value": "Other Real Estate"},
+          {"label": "Residential", "value": "Residential"},
+          {"label": "Biotechnology", "value": "Biotechnology"},
+          {"label": "REITS and Finance", "value": "REITS and Finance"},
+          {"label": "Investing", "value": "Investing"},
+          {"label": "Oil and Gas", "value": "Oil and Gas"},
+          {"label": "Manufacturing", "value": "Manufacturing"},
+          {"label": "Other Banking and Financial Services", "value": "Other Banking and Financial Services"},
+          {"label": "Retailing", "value": "Retailing"},
+          {"label": "Other Energy", "value": "Other Energy"},
+          {"label": "Pharmaceuticals", "value": "Pharmaceuticals"},
+          {"label": "Business Services", "value": "Business Services"},
+          {"label": "Restaurants", "value": "Restaurants"},
+          {"label": "Computers", "value": "Computers"}
+        ]
+      }
+    ]
+  },
+  "top_fundraisers": {
+    "name": "Top 20 Fundraisers",
+    "description": "Companies with largest offering amounts",
+    "category": "Form D Analytics",
+    "type": "chart",
+    "endpoint": "top_fundraisers",
+    "gridData": {"w": 1200, "h": 600},
+    "source": "The Marketcast",
+    "raw": true,
+    "params": [
+      {
+        "paramName": "year",
+        "label": "Year",
+        "type": "text",
+        "value": "all",
+        "options": [
+          {"label": "All Years", "value": "all"},
+          {"label": "2025", "value": "2025"},
+          {"label": "2024", "value": "2024"},
+          {"label": "2023", "value": "2023"},
+          {"label": "2022", "value": "2022"},
+          {"label": "2021", "value": "2021"},
+          {"label": "2020", "value": "2020"},
+          {"label": "2019", "value": "2019"},
+          {"label": "2018", "value": "2018"},
+          {"label": "2017", "value": "2017"},
+          {"label": "2016", "value": "2016"},
+          {"label": "2015", "value": "2015"},
+          {"label": "2014", "value": "2014"},
+          {"label": "2013", "value": "2013"},
+          {"label": "2012", "value": "2012"},
+          {"label": "2011", "value": "2011"},
+          {"label": "2010", "value": "2010"},
+          {"label": "2009", "value": "2009"}
+        ]
+      },
+      {
+        "paramName": "industry",
+        "label": "Industry",
+        "type": "text",
+        "value": "all",
+        "options": [
+          {"label": "All Industries", "value": "all"},
+          {"label": "Pooled Investment Fund", "value": "Pooled Investment Fund"},
+          {"label": "Other", "value": "Other"},
+          {"label": "Other Technology", "value": "Other Technology"},
+          {"label": "Commercial", "value": "Commercial"},
+          {"label": "Other Health Care", "value": "Other Health Care"},
+          {"label": "Other Real Estate", "value": "Other Real Estate"},
+          {"label": "Residential", "value": "Residential"},
+          {"label": "Biotechnology", "value": "Biotechnology"},
+          {"label": "REITS and Finance", "value": "REITS and Finance"},
+          {"label": "Investing", "value": "Investing"},
+          {"label": "Oil and Gas", "value": "Oil and Gas"}
+        ]
+      },
+      {
+        "paramName": "metric",
+        "label": "Metric",
+        "type": "text",
+        "value": "offering_amount",
+        "options": [
+          {"label": "Offering Amount", "value": "offering_amount"},
+          {"label": "Amount Sold", "value": "amount_sold"}
+        ]
+      }
+    ]
+  },
+  "location_distribution": {
+    "name": "Geographic Distribution",
+    "description": "Form D filings by US state",
+    "category": "Form D Analytics",
+    "type": "chart",
+    "endpoint": "location_distribution",
+    "gridData": {"w": 1200, "h": 600},
+    "source": "The Marketcast",
+    "raw": true,
+    "params": [
+      {
+        "paramName": "metric",
+        "label": "Metric",
+        "type": "text",
+        "value": "count",
+        "options": [
+          {"label": "Filing Count", "value": "count"},
+          {"label": "Offering Amount", "value": "offering_amount"},
+          {"label": "Amount Sold", "value": "amount_sold"}
+        ]
+      }
+    ]
+  },
+  "yearly_statistics": {
+    "name": "Yearly Statistics",
+    "description": "Annual totals for filings, amounts raised, and offerings by year",
+    "category": "Form D Analytics",
+    "type": "chart",
+    "endpoint": "yearly_statistics",
+    "gridData": {"w": 1200, "h": 500},
+    "source": "The Marketcast",
+    "raw": true,
+    "params": [
+      {
+        "paramName": "metric",
+        "label": "Metric",
+        "type": "text",
+        "value": "count",
+        "options": [
+          {"label": "Filing Count", "value": "count"},
+          {"label": "Offering Amount", "value": "offering_amount"},
+          {"label": "Amount Sold", "value": "amount_sold"}
+        ]
+      },
+      {
+        "paramName": "industry",
+        "label": "Industry",
+        "type": "text",
+        "value": "all",
+        "options": [
+          {"label": "All Industries", "value": "all"},
+          {"label": "Pooled Investment Fund", "value": "Pooled Investment Fund"},
+          {"label": "Other", "value": "Other"},
+          {"label": "Other Technology", "value": "Other Technology"},
+          {"label": "Commercial", "value": "Commercial"},
+          {"label": "Other Health Care", "value": "Other Health Care"},
+          {"label": "Other Real Estate", "value": "Other Real Estate"},
+          {"label": "Residential", "value": "Residential"},
+          {"label": "Biotechnology", "value": "Biotechnology"},
+          {"label": "REITS and Finance", "value": "REITS and Finance"},
+          {"label": "Investing", "value": "Investing"},
+          {"label": "Oil and Gas", "value": "Oil and Gas"},
+          {"label": "Manufacturing", "value": "Manufacturing"},
+          {"label": "Other Banking and Financial Services", "value": "Other Banking and Financial Services"},
+          {"label": "Retailing", "value": "Retailing"},
+          {"label": "Other Energy", "value": "Other Energy"},
+          {"label": "Pharmaceuticals", "value": "Pharmaceuticals"},
+          {"label": "Business Services", "value": "Business Services"},
+          {"label": "Restaurants", "value": "Restaurants"},
+          {"label": "Computers", "value": "Computers"}
         ]
       }
     ]
