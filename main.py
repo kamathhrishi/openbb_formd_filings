@@ -1048,6 +1048,33 @@ def get_top_fundraisers(year: str = None, industry: str = None, metric: str = "o
         else:
             fundraisers = data["top_fundraisers"][:20]
         
+        # Deduplicate companies by aggregating multiple filings per company
+        company_aggregated = {}
+        for item in fundraisers:
+            company_name = item.get("company_name", "Unknown Company")
+            amount = item.get("amount", 0)
+            security_type = item.get("security_type", "Unknown")
+            
+            if company_name in company_aggregated:
+                # Aggregate amounts for the same company
+                company_aggregated[company_name]["amount"] += amount
+                # Keep the most recent security type or combine if different
+                if company_aggregated[company_name]["security_type"] != security_type:
+                    company_aggregated[company_name]["security_type"] = f"{company_aggregated[company_name]['security_type']}/{security_type}"
+            else:
+                company_aggregated[company_name] = {
+                    "company_name": company_name,
+                    "amount": amount,
+                    "security_type": security_type
+                }
+        
+        # Convert back to list and sort by amount (descending for top selection)
+        fundraisers = list(company_aggregated.values())
+        fundraisers = sorted(fundraisers, key=lambda x: x.get("amount", 0), reverse=True)
+        
+        # Take top 20 after deduplication
+        fundraisers = fundraisers[:20]
+        
         # OPTIONAL - If raw is True, return the data as a list of dictionaries
         if raw:
             return fundraisers
