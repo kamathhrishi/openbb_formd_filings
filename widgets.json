@@ -19,12 +19,23 @@
     "params": [
       {
         "paramName": "page",
-        "label": "Page (change to view other pages)",
+        "label": "Page",
         "type": "number",
         "value": 1,
         "min": 1,
-        "step": 1,
-        "placeholder": "Enter page number (1, 2, 3...)"
+        "step": 1
+      },
+      {
+        "paramName": "prev",
+        "label": "←",
+        "type": "button",
+        "value": "prev"
+      },
+      {
+        "paramName": "next",
+        "label": "→",
+        "type": "button",
+        "value": "next"
       }
     ]
   },
