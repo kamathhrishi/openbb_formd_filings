@@ -1422,4 +1422,59 @@ def get_available_years():
         # Fetch available years from backend
         data = fetch_backend_data("charts/security-type-distribution?metric=count")
         
+        if data and data.get("available_years"):
+            years = data["available_years"]
+            # Format for dropdown options
+            options = [{"label": "All Years", "value": "all"}]
+            for year in sorted(years, reverse=True):
+                options.append({"label": str(year), "value": str(year)})
+            return {"years": options}
+        else:
+            # Fallback to static years if backend doesn't provide them
+            return {
+                "years": [
+                    {"label": "All Years", "value": "all"},
+                    {"label": "2025", "value": "2025"},
+                    {"label": "2024", "value": "2024"},
+                    {"label": "2023", "value": "2023"},
+                    {"label": "2022", "value": "2022"},
+                    {"label": "2021", "value": "2021"},
+                    {"label": "2020", "value": "2020"},
+                    {"label": "2019", "value": "2019"},
+                    {"label": "2018", "value": "2018"},
+                    {"label": "2017", "value": "2017"},
+                    {"label": "2016", "value": "2016"},
+                    {"label": "2015", "value": "2015"},
+                    {"label": "2014", "value": "2014"},
+                    {"label": "2013", "value": "2013"},
+                    {"label": "2012", "value": "2012"},
+                    {"label": "2011", "value": "2011"},
+                    {"label": "2010", "value": "2010"}
+                ]
+            }
+    except Exception as e:
+        print(f"Error getting available years: {e}")
+        return {"years": [{"label": "All Years", "value": "all"}]}
+
+if __name__ == "__main__":
+    print("🚀 Starting Form D Analytics Hub")
+    print(f"📡 Backend: {BACKEND_URL}")
+    print("📊 Widgets: Latest Filings, Security Types, Industries, Time Series")
+    print("🗺️  Geographic: US State Distribution")
+    print("💰 Top Fundraisers: Largest Offering Amounts")
+    print("📈 Three Tabs: Overview, Market Trends, Geographic Analysis")
+    print("🔗 Real data from Railway backend with smart fallbacks")
+    print("🔧 Widget types: markdown, table, chart")
+    print("📝 Form D Intro: Professional markdown content without emojis")
+    print("📊 Security Types: Returns Plotly chart JSON for OpenBB chart widget")
+    print("🎨 ALL TEXT WHITE: Charts now have white text throughout")
+    print("🔒 NON-RESIZABLE: Drag and zoom disabled on all charts")
+    print("=" * 60)
+    
+    port = int(os.getenv("PORT", 8000))
+    print(f"🌐 Server starting on port {port}")
+    print(f"🔗 Access at: http://localhost:{port}")
+    print(f"📊 Widgets: http://localhost:{port}/widgets.json")
+    print(f"📱 Apps: http://localhost:{port}/apps.json")
+    print("=" * 60)
     
