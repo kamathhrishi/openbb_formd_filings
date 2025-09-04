@@ -1,7 +1,7 @@
 {
   "form_d_intro": {
     "name": "Form D Filings Dashboard",
-    "description": "Introduction to Form D analytics and market insights",
+    "description": "Introduction to SEC Form D private placement analytics and market insights",
     "category": "Form D Analytics",
     "type": "markdown",
     "endpoint": "form_d_intro",
@@ -10,7 +10,7 @@
   },
   "latest_filings": {
     "name": "Latest Form D Filings",
-    "description": "Most recent SEC Form D filings. Change the page number to view more filings.",
+    "description": "Most recent SEC Form D private placement filings. Change the page number to view more filings.",
     "category": "Form D Analytics",
     "type": "table",
     "endpoint": "latest_filings",
@@ -30,7 +30,7 @@
   },
   "security_types": {
     "name": "Security Type Distribution",
-    "description": "Breakdown of filings by security type (Equity, Debt, Fund)",
+    "description": "Breakdown of private placement filings by security type (Equity, Debt, Fund)",
     "category": "Form D Analytics", 
     "type": "chart",
     "endpoint": "security_types",
@@ -128,7 +128,7 @@
   },
   "monthly_activity": {
     "name": "Monthly Filing Activity",
-    "description": "Time series of Form D filings by security type",
+    "description": "Time series of private placement filings by security type",
     "category": "Form D Analytics",
     "type": "chart",
     "endpoint": "monthly_activity", 
@@ -256,7 +256,7 @@
   },
   "location_distribution": {
     "name": "Geographic Distribution",
-    "description": "Form D filings by US state",
+    "description": "Private placement filings by US state",
     "category": "Form D Analytics",
     "type": "chart",
     "endpoint": "location_distribution",
