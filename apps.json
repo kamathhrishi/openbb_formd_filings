@@ -1,35 +1,39 @@
-{
-  "nasdaq_dashboard": {
-    "name": "NASDAQ Market Dashboard",
-    "description": "Complete NASDAQ market analysis with charts and data tables",
-    "version": "1.0.0",
-    "category": "Market Analysis",
-    "tabs": [
-      {
-        "name": "Main Dashboard",
-        "widgets": [
-          {
-            "id": "hello_world",
-            "gridData": {"x": 0, "y": 0, "w": 12, "h": 4}
-          },
-          {
-            "id": "test_chart",
-            "gridData": {"x": 0, "y": 4, "w": 6, "h": 4}
-          },
-          {
-            "id": "nasdaq_summary", 
-            "gridData": {"x": 6, "y": 4, "w": 6, "h": 4}
-          },
-          {
-            "id": "nasdaq_chart",
-            "gridData": {"x": 0, "y": 8, "w": 12, "h": 6}
-          },
-          {
-            "id": "stock_comparison",
-            "gridData": {"x": 0, "y": 14, "w": 12, "h": 6}
-          }
+[
+  {
+    "name": "Form D Analytics Dashboard",
+    "img": "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=250&h=200&fit=crop",
+    "img_dark": "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=250&h=200&fit=crop", 
+    "img_light": "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=250&h=200&fit=crop",
+    "description": "SEC Form D filing analytics - private equity and debt fundraising insights",
+    "allowCustomization": true,
+    "tabs": {
+      "overview": {
+        "id": "overview",
+        "name": "Overview",
+        "layout": [
+          {"i": "form_d_intro", "x": 0, "y": 0, "w": 40, "h": 6},
+          {"i": "latest_filings", "x": 0, "y": 6, "w": 40, "h": 12},
+          {"i": "security_types", "x": 0, "y": 18, "w": 20, "h": 16},
+          {"i": "top_industries", "x": 20, "y": 18, "w": 20, "h": 16}
+        ]
+      },
+      "trends": {
+        "id": "trends", 
+        "name": "Market Trends",
+        "layout": [
+          {"i": "monthly_activity", "x": 0, "y": 0, "w": 40, "h": 20},
+          {"i": "yearly_statistics", "x": 0, "y": 20, "w": 40, "h": 20},
+          {"i": "top_fundraisers", "x": 0, "y": 40, "w": 40, "h": 24}
+        ]
+      },
+      "geography": {
+        "id": "geography",
+        "name": "Geographic Analysis", 
+        "layout": [
+          {"i": "location_distribution", "x": 0, "y": 0, "w": 40, "h": 24}
         ]
       }
-    ]
+    },
+    "groups": []
   }
-}
+]
