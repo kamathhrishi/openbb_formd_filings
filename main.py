@@ -835,13 +835,20 @@ def get_monthly_activity(metric: str = "count", industry: str = "all", theme: st
         if industry and industry != "all":
             params.append(f"industry={industry}")
         
-        # Use different endpoint based on metric
-        if metric == "offering_amount":
-            endpoint = "charts/amount-raised-timeseries?metric=offering_amount"
-        elif metric == "amount_sold":
-            endpoint = "charts/amount-raised-timeseries?metric=amount_sold"
+        # Use industry-timeseries endpoint for industry filtering
+        if industry and industry != "all":
+            # Use industry-specific timeseries endpoint
+            endpoint = "charts/industry-timeseries"
+            if metric:
+                endpoint += f"?metric={metric}"
         else:
-            endpoint = "charts"
+            # Use different endpoint based on metric for all industries
+            if metric == "offering_amount":
+                endpoint = "charts/amount-raised-timeseries?metric=offering_amount"
+            elif metric == "amount_sold":
+                endpoint = "charts/amount-raised-timeseries?metric=amount_sold"
+            else:
+                endpoint = "charts"
         
         # Add filters if specified
         if params:
@@ -853,7 +860,8 @@ def get_monthly_activity(metric: str = "count", industry: str = "all", theme: st
         
         data = fetch_backend_data(endpoint)
         
-        if not data or not data.get("time_series"):
+        if not data:
+            # Fallback data
             months = ["2024-01", "2024-02", "2024-03", "2024-04", "2024-05", "2024-06"]
             if metric in ["offering_amount", "amount_sold"]:
                 equity_data = [500000000, 650000000, 450000000, 720000000, 800000000, 750000000]
@@ -864,20 +872,39 @@ def get_monthly_activity(metric: str = "count", industry: str = "all", theme: st
                 debt_data = [45, 50, 40, 55, 60, 50]
                 fund_data = [25, 30, 20, 35, 40, 35]
         else:
-            time_series = data["time_series"]
-            months = [item["date"] for item in time_series]
-            if metric == "offering_amount":
-                equity_data = [item.get("equity_amount", 0) for item in time_series]
-                debt_data = [item.get("debt_amount", 0) for item in time_series]
-                fund_data = [item.get("fund_amount", 0) for item in time_series]
-            elif metric == "amount_sold":
-                equity_data = [item.get("equity_amount", 0) for item in time_series]
-                debt_data = [item.get("debt_amount", 0) for item in time_series]
-                fund_data = [item.get("fund_amount", 0) for item in time_series]
+            # Handle different response formats based on endpoint
+            if industry and industry != "all":
+                # Industry-specific timeseries response format
+                time_series = data.get("timeseries", [])
+                months = [item["date"] for item in time_series]
+                if metric in ["offering_amount", "amount_sold"]:
+                    # For industry data, we only have total amounts, not by security type
+                    total_data = [item.get("total_amount", 0) for item in time_series]
+                    equity_data = total_data  # Show total as equity for industry view
+                    debt_data = [0] * len(total_data)  # No debt data for industry view
+                    fund_data = [0] * len(total_data)  # No fund data for industry view
+                else:
+                    # For count metric, show filings count
+                    total_data = [item.get("filings", 0) for item in time_series]
+                    equity_data = total_data  # Show total as equity for industry view
+                    debt_data = [0] * len(total_data)  # No debt data for industry view
+                    fund_data = [0] * len(total_data)  # No fund data for industry view
             else:
-                equity_data = [item.get("equity_filings", 0) for item in time_series]
-                debt_data = [item.get("debt_filings", 0) for item in time_series]
-                fund_data = [item.get("fund_filings", 0) for item in time_series]
+                # Regular timeseries response format (all industries)
+                time_series = data.get("time_series", [])
+                months = [item["date"] for item in time_series]
+                if metric == "offering_amount":
+                    equity_data = [item.get("equity_amount", 0) for item in time_series]
+                    debt_data = [item.get("debt_amount", 0) for item in time_series]
+                    fund_data = [item.get("fund_amount", 0) for item in time_series]
+                elif metric == "amount_sold":
+                    equity_data = [item.get("equity_amount", 0) for item in time_series]
+                    debt_data = [item.get("debt_amount", 0) for item in time_series]
+                    fund_data = [item.get("fund_amount", 0) for item in time_series]
+                else:
+                    equity_data = [item.get("equity_filings", 0) for item in time_series]
+                    debt_data = [item.get("debt_filings", 0) for item in time_series]
+                    fund_data = [item.get("fund_filings", 0) for item in time_series]
         
         # OPTIONAL - If raw is True, return the data as a list of dictionaries
         if raw:
@@ -913,19 +940,35 @@ def get_monthly_activity(metric: str = "count", industry: str = "all", theme: st
         
         fig = go.Figure()
         
-        # Update trace names and y-axis based on metric
-        if metric in ["offering_amount", "amount_sold"]:
-            equity_name = 'Equity'
-            debt_name = 'Debt'  
-            fund_name = 'Fund'
-            y_title = "Amount ($)"
-            hover_tmpl = '<b>%{x}</b><br><b>%{fullData.name}</b>: %{customdata}<extra></extra>'
+        # Update trace names and y-axis based on metric and industry filter
+        if industry and industry != "all":
+            # Industry-specific view - show only one line
+            if metric in ["offering_amount", "amount_sold"]:
+                equity_name = f'{industry} - Total Amount'
+                debt_name = None  # Don't show debt line for industry view
+                fund_name = None  # Don't show fund line for industry view
+                y_title = "Amount ($)"
+                hover_tmpl = '<b>%{x}</b><br><b>%{fullData.name}</b>: %{customdata}<extra></extra>'
+            else:
+                equity_name = f'{industry} - Filings'
+                debt_name = None  # Don't show debt line for industry view
+                fund_name = None  # Don't show fund line for industry view
+                y_title = "Number of Filings"
+                hover_tmpl = '<b>%{x}</b><br><b>%{fullData.name}</b>: %{y:,.0f} filings<extra></extra>'
         else:
-            equity_name = 'Equity Filings'
-            debt_name = 'Debt Filings'
-            fund_name = 'Fund Filings' 
-            y_title = "Number of Filings"
-            hover_tmpl = '<b>%{x}</b><br><b>%{fullData.name}</b>: %{y:,.0f} filings<extra></extra>'
+            # All industries view - show by security type
+            if metric in ["offering_amount", "amount_sold"]:
+                equity_name = 'Equity'
+                debt_name = 'Debt'  
+                fund_name = 'Fund'
+                y_title = "Amount ($)"
+                hover_tmpl = '<b>%{x}</b><br><b>%{fullData.name}</b>: %{customdata}<extra></extra>'
+            else:
+                equity_name = 'Equity Filings'
+                debt_name = 'Debt Filings'
+                fund_name = 'Fund Filings' 
+                y_title = "Number of Filings"
+                hover_tmpl = '<b>%{x}</b><br><b>%{fullData.name}</b>: %{y:,.0f} filings<extra></extra>'
         
         # Prepare custom data for currency formatting in tooltips
         if metric in ["offering_amount", "amount_sold"]:
@@ -937,29 +980,41 @@ def get_monthly_activity(metric: str = "count", industry: str = "all", theme: st
             debt_customdata = None
             fund_customdata = None
         
-        fig.add_trace(go.Scatter(
-            x=months, y=equity_data, mode='lines+markers', name=equity_name,
-            line=dict(color='#3B82F6', width=3), marker=dict(size=6),
-            hovertemplate=hover_tmpl,
-            customdata=equity_customdata,
-            hoverlabel=dict(bgcolor=hover_bgcolor, bordercolor=hover_bordercolor, font=dict(color=hover_font_color))
-        ))
-        
-        fig.add_trace(go.Scatter(
-            x=months, y=debt_data, mode='lines+markers', name=debt_name,
-            line=dict(color='#F59E0B', width=3), marker=dict(size=6),
-            hovertemplate=hover_tmpl,
-            customdata=debt_customdata,
-            hoverlabel=dict(bgcolor=hover_bgcolor, bordercolor=hover_bordercolor, font=dict(color=hover_font_color))
-        ))
-        
-        fig.add_trace(go.Scatter(
-            x=months, y=fund_data, mode='lines+markers', name=fund_name,
-            line=dict(color='#10B981', width=3), marker=dict(size=6),
-            hovertemplate=hover_tmpl,
-            customdata=fund_customdata,
-            hoverlabel=dict(bgcolor=hover_bgcolor, bordercolor=hover_bordercolor, font=dict(color=hover_font_color))
-        ))
+        # Add traces based on whether we're filtering by industry
+        if industry and industry != "all":
+            # Industry-specific view - only show one line
+            fig.add_trace(go.Scatter(
+                x=months, y=equity_data, mode='lines+markers', name=equity_name,
+                line=dict(color='#3B82F6', width=3), marker=dict(size=6),
+                hovertemplate=hover_tmpl,
+                customdata=equity_customdata,
+                hoverlabel=dict(bgcolor=hover_bgcolor, bordercolor=hover_bordercolor, font=dict(color=hover_font_color))
+            ))
+        else:
+            # All industries view - show all security types
+            fig.add_trace(go.Scatter(
+                x=months, y=equity_data, mode='lines+markers', name=equity_name,
+                line=dict(color='#3B82F6', width=3), marker=dict(size=6),
+                hovertemplate=hover_tmpl,
+                customdata=equity_customdata,
+                hoverlabel=dict(bgcolor=hover_bgcolor, bordercolor=hover_bordercolor, font=dict(color=hover_font_color))
+            ))
+            
+            fig.add_trace(go.Scatter(
+                x=months, y=debt_data, mode='lines+markers', name=debt_name,
+                line=dict(color='#F59E0B', width=3), marker=dict(size=6),
+                hovertemplate=hover_tmpl,
+                customdata=debt_customdata,
+                hoverlabel=dict(bgcolor=hover_bgcolor, bordercolor=hover_bordercolor, font=dict(color=hover_font_color))
+            ))
+            
+            fig.add_trace(go.Scatter(
+                x=months, y=fund_data, mode='lines+markers', name=fund_name,
+                line=dict(color='#10B981', width=3), marker=dict(size=6),
+                hovertemplate=hover_tmpl,
+                customdata=fund_customdata,
+                hoverlabel=dict(bgcolor=hover_bgcolor, bordercolor=hover_bordercolor, font=dict(color=hover_font_color))
+            ))
         
         # Add filtering context to title
         filter_parts = []
@@ -1367,59 +1422,4 @@ def get_available_years():
         # Fetch available years from backend
         data = fetch_backend_data("charts/security-type-distribution?metric=count")
         
-        if data and data.get("available_years"):
-            years = data["available_years"]
-            # Format for dropdown options
-            options = [{"label": "All Years", "value": "all"}]
-            for year in sorted(years, reverse=True):
-                options.append({"label": str(year), "value": str(year)})
-            return {"years": options}
-        else:
-            # Fallback to static years if backend doesn't provide them
-            return {
-                "years": [
-                    {"label": "All Years", "value": "all"},
-                    {"label": "2025", "value": "2025"},
-                    {"label": "2024", "value": "2024"},
-                    {"label": "2023", "value": "2023"},
-                    {"label": "2022", "value": "2022"},
-                    {"label": "2021", "value": "2021"},
-                    {"label": "2020", "value": "2020"},
-                    {"label": "2019", "value": "2019"},
-                    {"label": "2018", "value": "2018"},
-                    {"label": "2017", "value": "2017"},
-                    {"label": "2016", "value": "2016"},
-                    {"label": "2015", "value": "2015"},
-                    {"label": "2014", "value": "2014"},
-                    {"label": "2013", "value": "2013"},
-                    {"label": "2012", "value": "2012"},
-                    {"label": "2011", "value": "2011"},
-                    {"label": "2010", "value": "2010"}
-                ]
-            }
-    except Exception as e:
-        print(f"Error getting available years: {e}")
-        return {"years": [{"label": "All Years", "value": "all"}]}
-
-if __name__ == "__main__":
-    print("🚀 Starting Form D Analytics Hub")
-    print(f"📡 Backend: {BACKEND_URL}")
-    print("📊 Widgets: Latest Filings, Security Types, Industries, Time Series")
-    print("🗺️  Geographic: US State Distribution")
-    print("💰 Top Fundraisers: Largest Offering Amounts")
-    print("📈 Three Tabs: Overview, Market Trends, Geographic Analysis")
-    print("🔗 Real data from Railway backend with smart fallbacks")
-    print("🔧 Widget types: markdown, table, chart")
-    print("📝 Form D Intro: Professional markdown content without emojis")
-    print("📊 Security Types: Returns Plotly chart JSON for OpenBB chart widget")
-    print("🎨 ALL TEXT WHITE: Charts now have white text throughout")
-    print("🔒 NON-RESIZABLE: Drag and zoom disabled on all charts")
-    print("=" * 60)
-    
-    port = int(os.getenv("PORT", 8000))
-    print(f"🌐 Server starting on port {port}")
-    print(f"🔗 Access at: http://localhost:{port}")
-    print(f"📊 Widgets: http://localhost:{port}/widgets.json")
-    print(f"📱 Apps: http://localhost:{port}/apps.json")
-    print("=" * 60)
     
