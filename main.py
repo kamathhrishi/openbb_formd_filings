@@ -1048,7 +1048,7 @@ def get_top_fundraisers(year: str = None, industry: str = None, metric: str = "o
         else:
             fundraisers = data["top_fundraisers"][:20]
         
-        # Deduplicate companies by aggregating multiple filings per company
+        # Deduplicate companies by keeping only the largest filing per company
         company_aggregated = {}
         for item in fundraisers:
             company_name = item.get("company_name", "Unknown Company")
@@ -1056,11 +1056,13 @@ def get_top_fundraisers(year: str = None, industry: str = None, metric: str = "o
             security_type = item.get("security_type", "Unknown")
             
             if company_name in company_aggregated:
-                # Aggregate amounts for the same company
-                company_aggregated[company_name]["amount"] += amount
-                # Keep the most recent security type or combine if different
-                if company_aggregated[company_name]["security_type"] != security_type:
-                    company_aggregated[company_name]["security_type"] = f"{company_aggregated[company_name]['security_type']}/{security_type}"
+                # Keep only the largest amount for the same company
+                if amount > company_aggregated[company_name]["amount"]:
+                    company_aggregated[company_name] = {
+                        "company_name": company_name,
+                        "amount": amount,
+                        "security_type": security_type
+                    }
             else:
                 company_aggregated[company_name] = {
                     "company_name": company_name,
