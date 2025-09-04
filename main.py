@@ -286,15 +286,9 @@ Form D filings provide insights into private market activity including venture c
         return "# Form D Filings Dashboard\n\nError loading introduction content."
 
 @app.get("/latest_filings")
-def get_latest_filings(page: int = 1, per_page: int = 15, prev: str = None, next: str = None):
-    """Get latest Form D filings as table data with simple navigation buttons"""
+def get_latest_filings(page: int = 1, per_page: int = 15):
+    """Get latest Form D filings as table data with page navigation"""
     try:
-        # Handle button clicks
-        if prev == "prev" and page > 1:
-            page = page - 1
-        elif next == "next":
-            page = page + 1
-        # If no button clicked, stay on current page
         
         # Fetch real data from backend with pagination
         data = fetch_backend_data(f"filings?page={page}&per_page={per_page}")
@@ -325,23 +319,8 @@ def get_latest_filings(page: int = 1, per_page: int = 15, prev: str = None, next
                 "date": str(filing.get("filing_date")) if filing.get("filing_date") else "Unknown"
             })
         
-        # Get pagination info for auto-updating page number
-        pagination_info = data.get("pagination", {})
-        total_pages = pagination_info.get("total_pages", 0)
-        total_items = pagination_info.get("total_items", 0)
-        
-        # Return table data with pagination info for auto-update
-        return {
-            "data": filings_data,
-            "pagination": {
-                "current_page": page,
-                "total_pages": total_pages,
-                "total_items": total_items,
-                "has_prev": page > 1,
-                "has_next": page < total_pages,
-                "page_info": f"Page {page} of {total_pages} ({total_items:,} total filings)"
-            }
-        }
+        # Return just the table data - clean table structure
+        return filings_data
         
     except Exception as e:
         print(f"Error in latest_filings: {e}")
@@ -1116,4 +1095,19 @@ if __name__ == "__main__":
     print("📈 Yearly Statistics: Annual bar charts for filings and amounts")
     print("🗺️  Geographic: US State Distribution")
     print("💰 Top Fundraisers: Largest Offering Amounts")
+    print("📈 Three Tabs: Overview, Market Trends, Geographic Analysis")
+    print("🔗 Real data from Railway backend")
+    print("🔧 Widget types: markdown, table, chart")
+    print("📝 Form D Intro: Professional markdown content without emojis")
+    print("📊 Security Types: Returns Plotly chart JSON for OpenBB chart widget")
+    print("🎨 ALL TEXT WHITE: Charts now have white text throughout")
+    print("🔒 NON-RESIZABLE: Drag and zoom disabled on all charts")
+    print("=" * 60)
+    
+    port = int(os.getenv("PORT", 8000))
+    print(f"🌐 Server starting on port {port}")
+    print(f"🔗 Access at: http://localhost:{port}")
+    print(f"📊 Widgets: http://localhost:{port}/widgets.json")
+    print(f"📱 Apps: http://localhost:{port}/apps.json")
+    print("=" * 60)
     
