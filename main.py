@@ -276,7 +276,7 @@ Real-time analytics of SEC Form D filings - tracking private equity, debt, and f
 
 **{total_filings}** filings tracked • **{total_raised}** in offerings • Updated from SEC EDGAR database
 
-Form D filings provide insights into private market activity including venture capital, private equity, debt offerings, and investment fund formations.
+Form D filings provide insights into private market activity including private securities offerings, investment funds, and various types of private capital raising across all industries.
 """
         
         return markdown_content
