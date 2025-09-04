@@ -329,3 +329,29 @@
         "label": "Industry",
         "type": "text",
         "value": "all",
+        "options": [
+          {"label": "All Industries", "value": "all"},
+          {"label": "Pooled Investment Fund", "value": "Pooled Investment Fund"},
+          {"label": "Other", "value": "Other"},
+          {"label": "Other Technology", "value": "Other Technology"},
+          {"label": "Commercial", "value": "Commercial"},
+          {"label": "Other Health Care", "value": "Other Health Care"},
+          {"label": "Other Real Estate", "value": "Other Real Estate"},
+          {"label": "Residential", "value": "Residential"},
+          {"label": "Biotechnology", "value": "Biotechnology"},
+          {"label": "REITS and Finance", "value": "REITS and Finance"},
+          {"label": "Investing", "value": "Investing"},
+          {"label": "Oil and Gas", "value": "Oil and Gas"},
+          {"label": "Manufacturing", "value": "Manufacturing"},
+          {"label": "Other Banking and Financial Services", "value": "Other Banking and Financial Services"},
+          {"label": "Retailing", "value": "Retailing"},
+          {"label": "Other Energy", "value": "Other Energy"},
+          {"label": "Pharmaceuticals", "value": "Pharmaceuticals"},
+          {"label": "Business Services", "value": "Business Services"},
+          {"label": "Restaurants", "value": "Restaurants"},
+          {"label": "Computers", "value": "Computers"}
+        ]
+      }
+    ]
+  }
+}
