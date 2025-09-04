@@ -286,24 +286,21 @@ Form D filings provide insights into private market activity including venture c
         return "# Form D Filings Dashboard\n\nError loading introduction content."
 
 @app.get("/latest_filings")
-def get_latest_filings(page: int = 1, per_page: int = 15):
-    """Get latest Form D filings as table data with pagination"""
+def get_latest_filings(page: int = 1, per_page: int = 15, action: str = "current"):
+    """Get latest Form D filings as table data with intuitive navigation"""
     try:
+        # Handle navigation actions
+        if action == "prev" and page > 1:
+            page = page - 1
+        elif action == "next":
+            page = page + 1
+        # For "current" action, keep the same page
+        
         # Fetch real data from backend with pagination
         data = fetch_backend_data(f"filings?page={page}&per_page={per_page}")
         
         if not data or not data.get("data"):
-            return {
-                "data": [],
-                "pagination": {
-                    "page": page,
-                    "per_page": per_page,
-                    "total_items": 0,
-                    "total_pages": 0,
-                    "has_next": False,
-                    "has_prev": False
-                }
-            }
+            return []
         
         # Process real data from backend
         filings = data["data"]
@@ -328,57 +325,12 @@ def get_latest_filings(page: int = 1, per_page: int = 15):
                 "date": str(filing.get("filing_date")) if filing.get("filing_date") else "Unknown"
             })
         
-        # Return data with pagination info
-        pagination_info = data.get("pagination", {})
-        current_page = pagination_info.get("page", page)
-        total_pages = pagination_info.get("total_pages", 0)
-        
-        # Generate page numbers for navigation (show 5 pages around current)
-        page_numbers = []
-        if total_pages > 0:
-            start_page = max(1, current_page - 2)
-            end_page = min(total_pages, current_page + 2)
-            page_numbers = list(range(start_page, end_page + 1))
-            
-            # Add first and last page if not in range
-            if start_page > 1:
-                page_numbers.insert(0, 1)
-            if end_page < total_pages:
-                page_numbers.append(total_pages)
-        
-        # Calculate approximate total filings for display
-        total_filings = pagination_info.get("total_items", 0)
-        total_filings_display = f"{total_filings:,}" if total_filings > 0 else "Unknown"
-        
-        return {
-            "data": filings_data,
-            "pagination": {
-                "page": current_page,
-                "per_page": pagination_info.get("per_page", per_page),
-                "total_items": total_filings,
-                "total_pages": total_pages,
-                "has_next": pagination_info.get("has_next", False),
-                "has_prev": pagination_info.get("has_prev", False),
-                "page_numbers": page_numbers,
-                "show_pagination": total_pages > 1,
-                "total_filings_display": total_filings_display,
-                "page_info": f"Page {current_page} of {total_pages} ({total_filings_display} total filings)"
-            }
-        }
+        # Return just the table data - navigation is handled by the widget controls
+        return filings_data
         
     except Exception as e:
         print(f"Error in latest_filings: {e}")
-        return {
-            "data": [{"error": str(e)}],
-            "pagination": {
-                "page": page,
-                "per_page": per_page,
-                "total_items": 0,
-                "total_pages": 0,
-                "has_next": False,
-                "has_prev": False
-            }
-        }
+        return [{"error": str(e)}]
 
 @app.get("/security_types")
 def get_security_types(year: str = None, metric: str = "count", theme: str = "dark", raw: bool = False):
