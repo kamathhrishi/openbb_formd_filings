@@ -26,15 +26,16 @@
         "step": 1
       },
       {
-        "paramName": "action",
-        "label": "Navigation",
-        "type": "text",
-        "value": "current",
-        "options": [
-          {"label": "← Previous", "value": "prev"},
-          {"label": "Current Page", "value": "current"},
-          {"label": "Next →", "value": "next"}
-        ]
+        "paramName": "prev",
+        "label": "← Previous",
+        "type": "button",
+        "value": "prev"
+      },
+      {
+        "paramName": "next",
+        "label": "Next →",
+        "type": "button", 
+        "value": "next"
       }
     ]
   },
