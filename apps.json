@@ -36,22 +36,25 @@
     },
     "groups": [
       {
-        "id": "year_group",
         "name": "Year Filter",
-        "paramName": "year",
-        "widgets": ["security_types", "top_industries", "top_fundraisers", "yearly_statistics"]
+        "groupById": "year",
+        "type": "text",
+        "defaultValue": "all",
+        "widgetIds": ["security_types", "top_industries", "top_fundraisers", "yearly_statistics"]
       },
       {
-        "id": "metric_group",
         "name": "Metric Filter", 
-        "paramName": "metric",
-        "widgets": ["security_types", "top_industries", "location_distribution", "yearly_statistics"]
+        "groupById": "metric",
+        "type": "text",
+        "defaultValue": "count",
+        "widgetIds": ["security_types", "top_industries", "location_distribution", "yearly_statistics"]
       },
       {
-        "id": "industry_group",
         "name": "Industry Filter",
-        "paramName": "industry", 
-        "widgets": ["monthly_activity", "top_fundraisers", "yearly_statistics"]
+        "groupById": "industry", 
+        "type": "text",
+        "defaultValue": "all",
+        "widgetIds": ["monthly_activity", "top_fundraisers", "yearly_statistics"]
       }
     ]
   }
