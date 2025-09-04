@@ -27,13 +27,13 @@
       },
       {
         "paramName": "prev",
-        "label": "←",
+        "label": "<",
         "type": "button",
         "value": "prev"
       },
       {
         "paramName": "next",
-        "label": "→",
+        "label": ">",
         "type": "button",
         "value": "next"
       }
