@@ -10,7 +10,7 @@
   },
   "latest_filings": {
     "name": "Latest Form D Filings",
-    "description": "Most recent SEC Form D filings with intuitive navigation",
+    "description": "Most recent SEC Form D filings. Change the page number above to view more filings (page 1, 2, 3, etc.)",
     "category": "Form D Analytics",
     "type": "table",
     "endpoint": "latest_filings",
@@ -19,23 +19,12 @@
     "params": [
       {
         "paramName": "page",
-        "label": "Page",
+        "label": "Page (change to view other pages)",
         "type": "number",
         "value": 1,
         "min": 1,
-        "step": 1
-      },
-      {
-        "paramName": "prev",
-        "label": "← Previous",
-        "type": "button",
-        "value": "prev"
-      },
-      {
-        "paramName": "next",
-        "label": "Next →",
-        "type": "button", 
-        "value": "next"
+        "step": 1,
+        "placeholder": "Enter page number (1, 2, 3...)"
       }
     ]
   },
