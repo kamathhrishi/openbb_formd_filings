@@ -230,7 +230,15 @@
           {"label": "Biotechnology", "value": "Biotechnology"},
           {"label": "REITS and Finance", "value": "REITS and Finance"},
           {"label": "Investing", "value": "Investing"},
-          {"label": "Oil and Gas", "value": "Oil and Gas"}
+          {"label": "Oil and Gas", "value": "Oil and Gas"},
+          {"label": "Manufacturing", "value": "Manufacturing"},
+          {"label": "Other Banking and Financial Services", "value": "Other Banking and Financial Services"},
+          {"label": "Retailing", "value": "Retailing"},
+          {"label": "Other Energy", "value": "Other Energy"},
+          {"label": "Pharmaceuticals", "value": "Pharmaceuticals"},
+          {"label": "Business Services", "value": "Business Services"},
+          {"label": "Restaurants", "value": "Restaurants"},
+          {"label": "Computers", "value": "Computers"}
         ]
       },
       {
@@ -239,6 +247,7 @@
         "type": "text",
         "value": "offering_amount",
         "options": [
+          {"label": "Filing Count", "value": "count"},
           {"label": "Offering Amount", "value": "offering_amount"},
           {"label": "Amount Sold", "value": "amount_sold"}
         ]
