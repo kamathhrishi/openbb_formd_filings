@@ -290,10 +290,15 @@ def get_latest_filings(page: int = 1, per_page: int = 15, prev: str = None, next
     """Get latest Form D filings as table data with simple navigation"""
     try:
         # Handle button clicks
+        original_page = page
         if prev == "prev" and page > 1:
             page = page - 1
+            print(f"🔄 Previous clicked: {original_page} → {page}")
         elif next == "next":
             page = page + 1
+            print(f"🔄 Next clicked: {original_page} → {page}")
+        else:
+            print(f"📄 Page request: {page}")
         
         # Fetch real data from backend with pagination
         data = fetch_backend_data(f"filings?page={page}&per_page={per_page}")
