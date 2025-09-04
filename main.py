@@ -58,18 +58,63 @@ def get_toolbar_config():
         'scrollZoom': False
     }
 
+def format_currency_short(value: float) -> str:
+    """Format currency values as short form ($1.2M, $3.4B, $1.0T)"""
+    absolute_value = abs(float(value))
+    if absolute_value >= 1_000_000_000_000:
+        return f"${value / 1_000_000_000_000:.1f}T"
+    if absolute_value >= 1_000_000_000:
+        return f"${value / 1_000_000_000:.1f}B"
+    if absolute_value >= 1_000_000:
+        return f"${value / 1_000_000:.1f}M"
+    if absolute_value >= 1_000:
+        return f"${value / 1_000:.1f}K"
+    return f"${value:,.0f}"
+
+def get_hover_colors(theme: str = "dark"):
+    """Get hover color configuration for charts"""
+    return {
+        'bgcolor': '#111827' if theme != 'light' else 'white',
+        'bordercolor': '#374151' if theme != 'light' else '#E5E7EB'
+    }
+
+def is_amount_metric(metric: str) -> bool:
+    """Check if metric is an amount-based metric"""
+    return metric in ["offering_amount", "amount_sold"]
+
+def build_filter_context(year: str = None, metric: str = None, industry: str = None) -> str:
+    """Build filter context string for chart titles"""
+    filter_parts = []
+    if year and year != "all":
+        filter_parts.append(f"Year: {year}")
+    if industry and industry != "all":
+        filter_parts.append(f"Industry: {industry}")
+    if metric == "amount_sold":
+        filter_parts.append("by Amount Sold")
+    elif metric == "offering_amount":
+        filter_parts.append("by Offering Amount")
+    elif metric == "count":
+        filter_parts.append("by Count")
+    
+    return f" ({', '.join(filter_parts)})" if filter_parts else ""
+
+def figure_to_json(fig) -> dict:
+    """Convert Plotly figure to JSON with toolbar config"""
+    figure_json = json.loads(fig.to_json())
+    figure_json['config'] = get_toolbar_config()
+    return figure_json
+
 def base_layout(theme: str = "dark"):
     """Get base layout configuration for charts"""
     colors = get_theme_colors(theme)
-    hover_bgcolor = '#111827' if theme != "light" else 'white'
-    hover_bordercolor = '#374151' if theme != "light" else '#E5E7EB'
+    hover_colors = get_hover_colors(theme)
     return {
         'plot_bgcolor': colors["background"],
         'paper_bgcolor': colors["background"],
         'font': {'color': colors["text"]},
         'hoverlabel': {
-            'bgcolor': hover_bgcolor,
-            'bordercolor': hover_bordercolor,
+            'bgcolor': hover_colors['bgcolor'],
+            'bordercolor': hover_colors['bordercolor'],
             'font': {'color': colors["text"]}
         },
         'xaxis': {
@@ -512,49 +557,7 @@ def get_latest_filings():
         data = fetch_backend_data("filings?page=1&per_page=15")
         
         if not data or not data.get("data"):
-            # Fallback data - simple list of dictionaries
-            return [
-                {
-                    "company": "TechCorp Inc", 
-                    "amount": "$500.0M", 
-                    "type": "Equity",
-                    "industry": "Technology",
-                    "location": "San Francisco, CA",
-                    "date": "2024-08-20"
-                },
-                {
-                    "company": "HealthVentures LLC", 
-                    "amount": "$250.0M", 
-                    "type": "Equity", 
-                    "industry": "Healthcare",
-                    "location": "Boston, MA",
-                    "date": "2024-08-19"
-                },
-                {
-                    "company": "GreenEnergy Partners", 
-                    "amount": "$150.0M", 
-                    "type": "Fund",
-                    "industry": "Energy", 
-                    "location": "Austin, TX",
-                    "date": "2024-08-18"
-                },
-                {
-                    "company": "FinTech Solutions", 
-                    "amount": "$100.0M", 
-                    "type": "Debt",
-                    "industry": "Financial Services",
-                    "location": "New York, NY", 
-                    "date": "2024-08-17"
-                },
-                {
-                    "company": "RealEstate Holdings", 
-                    "amount": "$75.0M", 
-                    "type": "Equity",
-                    "industry": "Real Estate",
-                    "location": "Miami, FL", 
-                    "date": "2024-08-16"
-                }
-            ]
+            return []
         
         # Process real data from backend
         filings = data["data"][:15]  # Latest 15
@@ -606,13 +609,9 @@ def get_security_types(year: str = None, metric: str = "count", theme: str = "da
         data = fetch_backend_data(endpoint)
         
         if not data or not data.get("distribution"):
-            distribution = [
-                {"name": "Equity", "value": 1250},
-                {"name": "Debt", "value": 450},
-                {"name": "Fund", "value": 320}
-            ]
-        else:
-            distribution = data["distribution"]
+            return {"error": "No data available from backend"}
+        
+        distribution = data["distribution"]
         
         # OPTIONAL - If raw is True, return the data as a list of dictionaries
         # Otherwise, return the data as a Plotly figure
@@ -639,41 +638,13 @@ def get_security_types(year: str = None, metric: str = "count", theme: str = "da
         
         # Get theme colors
         theme_colors = get_theme_colors(theme)
-        hover_bgcolor = '#111827' if theme != 'light' else 'white'
-        hover_bordercolor = '#374151' if theme != 'light' else '#E5E7EB'
-        hover_font_color = theme_colors["text"]
-        # Hover label styling per theme (helps with x unified and standard hover)
-        hover_bgcolor = '#111827' if theme != 'light' else 'white'
-        hover_bordercolor = '#374151' if theme != 'light' else '#E5E7EB'
-        hover_font_color = theme_colors["text"]
+        hover_colors = get_hover_colors(theme)
         colors = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6']
         # Add filtering context to title
-        filter_context = []
-        if year and year != "all":
-            filter_context.append(f"Year: {year}")
-        if metric == "amount_sold":
-            filter_context.append("by Amount Sold")
-        elif metric == "offering_amount":
-            filter_context.append("by Offering Amount")
-        else:
-            filter_context.append("by Count")
-        
-        filter_text = f" ({', '.join(filter_context)})" if filter_context else ""
+        filter_text = build_filter_context(year=year, metric=metric)
         
         # Format total value based on metric type
-        if metric in ["offering_amount", "amount_sold"]:
-            # Helper to format currency as short form
-            def format_currency_short(value: float) -> str:
-                absolute_value = abs(float(value))
-                if absolute_value >= 1_000_000_000_000:
-                    return f"${value / 1_000_000_000_000:.1f}T"
-                if absolute_value >= 1_000_000_000:
-                    return f"${value / 1_000_000_000:.1f}B"
-                if absolute_value >= 1_000_000:
-                    return f"${value / 1_000_000:.1f}M"
-                if absolute_value >= 1_000:
-                    return f"${value / 1_000:.1f}K"
-                return f"${value:,.0f}"
+        if is_amount_metric(metric):
             chart_title = f"Total: {format_currency_short(total_value)}{filter_text}"
         else:
             chart_title = f"Total: {total_value:,}{filter_text}"
@@ -682,7 +653,7 @@ def get_security_types(year: str = None, metric: str = "count", theme: str = "da
         values = [float(item["value"]) for item in final_data]
         
         # Prepare hover template based on metric type
-        if metric in ["offering_amount", "amount_sold"]:
+        if is_amount_metric(metric):
             hover_template = '<b>%{label}</b><br>Amount: %{customdata}<br>Percentage: %{percent}<extra></extra>'
             # Format values for hover display
             formatted_values = [format_currency_short(val) for val in values]
@@ -724,30 +695,11 @@ def get_security_types(year: str = None, metric: str = "count", theme: str = "da
         fig.update_layout(layout_config)
         
         # Convert figure to JSON and apply config
-        figure_json = json.loads(fig.to_json())
-        figure_json['config'] = get_toolbar_config()
-
-        return figure_json
+        return figure_to_json(fig)
         
     except Exception as e:
         print(f"❌ Error in security_types: {e}")
-        fallback_fig = go.Figure(data=[go.Pie(
-            labels=["Equity", "Debt", "Fund"],
-            values=[1250, 450, 320],
-            hole=0.4,
-            marker_colors=['#3B82F6', '#F59E0B', '#10B981'],
-            textfont=dict(color='white', size=12)
-        )])
-        fallback_fig.update_layout(
-            title="Security Type Distribution (Fallback)",
-            height=400,
-            plot_bgcolor='rgba(0,0,0,0)',
-            paper_bgcolor='rgba(0,0,0,0)',
-            title_font_color='white',
-            legend=dict(font=dict(color='white')),
-            dragmode=False
-        )
-        return json.loads(fallback_fig.to_json())
+        return {"error": str(e)}
 
 @app.get("/top_industries") 
 def get_top_industries(year: str = None, metric: str = "count", theme: str = "dark", raw: bool = False):
@@ -768,15 +720,9 @@ def get_top_industries(year: str = None, metric: str = "count", theme: str = "da
         data = fetch_backend_data(endpoint)
         
         if not data or not data.get("distribution"):
-            distribution = [
-                {"name": "Technology", "value": 850},
-                {"name": "Healthcare", "value": 620},
-                {"name": "Financial Services", "value": 480},
-                {"name": "Real Estate", "value": 350},
-                {"name": "Energy", "value": 280}
-            ]
-        else:
-            distribution = data["distribution"][:10]
+            return {"error": "No data available from backend"}
+        
+        distribution = data["distribution"][:10]
         
         # OPTIONAL - If raw is True, return the data as a list of dictionaries
         if raw:
@@ -787,21 +733,8 @@ def get_top_industries(year: str = None, metric: str = "count", theme: str = "da
         # Get theme colors
         theme_colors = get_theme_colors(theme)
         
-        # Helper to format currency as short form
-        def format_currency_short(value: float) -> str:
-            absolute_value = abs(float(value))
-            if absolute_value >= 1_000_000_000_000:
-                return f"${value / 1_000_000_000_000:.1f}T"
-            if absolute_value >= 1_000_000_000:
-                return f"${value / 1_000_000_000:.1f}B"
-            if absolute_value >= 1_000_000:
-                return f"${value / 1_000_000:.1f}M"
-            if absolute_value >= 1_000:
-                return f"${value / 1_000:.1f}K"
-            return f"${value:,.0f}"
-        
         # Prepare text and hover template based on metric type
-        if metric in ["offering_amount", "amount_sold"]:
+        if is_amount_metric(metric):
             text_values = [format_currency_short(item["value"]) for item in distribution]
             hover_template = '<b>%{y}</b><br>Amount: %{customdata}<extra></extra>'
             customdata = text_values
@@ -823,17 +756,7 @@ def get_top_industries(year: str = None, metric: str = "count", theme: str = "da
         )])
         
         # Add filtering context to title
-        filter_context = []
-        if year and year != "all":
-            filter_context.append(f"Year: {year}")
-        if metric == "amount_sold":
-            filter_context.append("by Amount Sold")
-        elif metric == "offering_amount":
-            filter_context.append("by Offering Amount")
-        else:
-            filter_context.append("by Count")
-        
-        filter_text = f" ({', '.join(filter_context)})" if filter_context else ""
+        filter_text = build_filter_context(year=year, metric=metric)
         subtitle = f"Real Form D data - most active sectors{filter_text}"
         
         # Apply base layout configuration
@@ -864,10 +787,7 @@ def get_top_industries(year: str = None, metric: str = "count", theme: str = "da
         fig.update_layout(layout_config)
         
         # Convert figure to JSON and apply config
-        figure_json = json.loads(fig.to_json())
-        figure_json['config'] = get_toolbar_config()
-
-        return figure_json
+        return figure_to_json(fig)
         
     except Exception as e:
         print(f"Error in top_industries: {e}")
@@ -912,36 +832,7 @@ def get_monthly_activity(metric: str = "count", industry: str = "all", theme: st
         current_month = current_date.strftime("%Y-%m")
         
         if not data:
-            # Fallback data - start from 2009 and exclude current month
-            months = ["2009-01", "2009-02", "2009-03", "2009-04", "2009-05", "2009-06", "2009-07", "2009-08", "2009-09", "2009-10", "2009-11", "2009-12",
-                     "2010-01", "2010-02", "2010-03", "2010-04", "2010-05", "2010-06", "2010-07", "2010-08", "2010-09", "2010-10", "2010-11", "2010-12",
-                     "2011-01", "2011-02", "2011-03", "2011-04", "2011-05", "2011-06", "2011-07", "2011-08", "2011-09", "2011-10", "2011-11", "2011-12",
-                     "2012-01", "2012-02", "2012-03", "2012-04", "2012-05", "2012-06", "2012-07", "2012-08", "2012-09", "2012-10", "2012-11", "2012-12",
-                     "2013-01", "2013-02", "2013-03", "2013-04", "2013-05", "2013-06", "2013-07", "2013-08", "2013-09", "2013-10", "2013-11", "2013-12",
-                     "2014-01", "2014-02", "2014-03", "2014-04", "2014-05", "2014-06", "2014-07", "2014-08", "2014-09", "2014-10", "2014-11", "2014-12",
-                     "2015-01", "2015-02", "2015-03", "2015-04", "2015-05", "2015-06", "2015-07", "2015-08", "2015-09", "2015-10", "2015-11", "2015-12",
-                     "2016-01", "2016-02", "2016-03", "2016-04", "2016-05", "2016-06", "2016-07", "2016-08", "2016-09", "2016-10", "2016-11", "2016-12",
-                     "2017-01", "2017-02", "2017-03", "2017-04", "2017-05", "2017-06", "2017-07", "2017-08", "2017-09", "2017-10", "2017-11", "2017-12",
-                     "2018-01", "2018-02", "2018-03", "2018-04", "2018-05", "2018-06", "2018-07", "2018-08", "2018-09", "2018-10", "2018-11", "2018-12",
-                     "2019-01", "2019-02", "2019-03", "2019-04", "2019-05", "2019-06", "2019-07", "2019-08", "2019-09", "2019-10", "2019-11", "2019-12",
-                     "2020-01", "2020-02", "2020-03", "2020-04", "2020-05", "2020-06", "2020-07", "2020-08", "2020-09", "2020-10", "2020-11", "2020-12",
-                     "2021-01", "2021-02", "2021-03", "2021-04", "2021-05", "2021-06", "2021-07", "2021-08", "2021-09", "2021-10", "2021-11", "2021-12",
-                     "2022-01", "2022-02", "2022-03", "2022-04", "2022-05", "2022-06", "2022-07", "2022-08", "2022-09", "2022-10", "2022-11", "2022-12",
-                     "2023-01", "2023-02", "2023-03", "2023-04", "2023-05", "2023-06", "2023-07", "2023-08", "2023-09", "2023-10", "2023-11", "2023-12",
-                     "2024-01", "2024-02", "2024-03", "2024-04", "2024-05", "2024-06", "2024-07", "2024-08", "2024-09", "2024-10", "2024-11", "2024-12"]
-            
-            # Filter out current month
-            months = [m for m in months if m != current_month]
-            
-            if metric in ["offering_amount", "amount_sold"]:
-                # Generate sample data for the filtered months
-                equity_data = [500000000 + (i * 10000000) for i in range(len(months))]
-                debt_data = [200000000 + (i * 5000000) for i in range(len(months))]
-                fund_data = [150000000 + (i * 3000000) for i in range(len(months))]
-            else:
-                equity_data = [120 + i for i in range(len(months))]
-                debt_data = [45 + (i // 2) for i in range(len(months))]
-                fund_data = [25 + (i // 3) for i in range(len(months))]
+            return {"error": "No data available from backend"}
         else:
             # Handle different response formats based on endpoint
             if industry and industry != "all":
@@ -1003,32 +894,16 @@ def get_monthly_activity(metric: str = "count", industry: str = "all", theme: st
                 })
             return raw_data
         
-        # Helper to format currency as short form ($1.2M, $3.4B, $1.0T)
-        def format_currency_short(value: float) -> str:
-            absolute_value = abs(float(value))
-            if absolute_value >= 1_000_000_000_000:
-                return f"${value / 1_000_000_000_000:.1f}T"
-            if absolute_value >= 1_000_000_000:
-                return f"${value / 1_000_000_000:.1f}B"
-            if absolute_value >= 1_000_000:
-                return f"${value / 1_000_000:.1f}M"
-            if absolute_value >= 1_000:
-                return f"${value / 1_000:.1f}K"
-            return f"${value:,.0f}"
-
         # Get theme colors
         theme_colors = get_theme_colors(theme)
-        # Define hover label theme-specific colors
-        hover_bgcolor = '#111827' if theme != 'light' else 'white'
-        hover_bordercolor = '#374151' if theme != 'light' else '#E5E7EB'
-        hover_font_color = theme_colors["text"]
+        hover_colors = get_hover_colors(theme)
         
         fig = go.Figure()
         
         # Update trace names and y-axis based on metric and industry filter
         if industry and industry != "all":
             # Industry-specific view - show only one line
-            if metric in ["offering_amount", "amount_sold"]:
+            if is_amount_metric(metric):
                 equity_name = f'{industry} - Total Amount'
                 debt_name = None  # Don't show debt line for industry view
                 fund_name = None  # Don't show fund line for industry view
@@ -1042,7 +917,7 @@ def get_monthly_activity(metric: str = "count", industry: str = "all", theme: st
                 hover_tmpl = '<b>%{x}</b><br><b>%{fullData.name}</b>: %{y:,.0f} filings<extra></extra>'
         else:
             # All industries view - show by security type
-            if metric in ["offering_amount", "amount_sold"]:
+            if is_amount_metric(metric):
                 equity_name = 'Equity'
                 debt_name = 'Debt'  
                 fund_name = 'Fund'
@@ -1056,7 +931,7 @@ def get_monthly_activity(metric: str = "count", industry: str = "all", theme: st
                 hover_tmpl = '<b>%{x}</b><br><b>%{fullData.name}</b>: %{y:,.0f} filings<extra></extra>'
         
         # Prepare custom data for currency formatting in tooltips
-        if metric in ["offering_amount", "amount_sold"]:
+        if is_amount_metric(metric):
             equity_customdata = [format_currency_short(val) for val in equity_data]
             debt_customdata = [format_currency_short(val) for val in debt_data]
             fund_customdata = [format_currency_short(val) for val in fund_data]
@@ -1073,7 +948,7 @@ def get_monthly_activity(metric: str = "count", industry: str = "all", theme: st
                 line=dict(color='#3B82F6', width=3), marker=dict(size=6),
                 hovertemplate=hover_tmpl,
                 customdata=equity_customdata,
-                hoverlabel=dict(bgcolor=hover_bgcolor, bordercolor=hover_bordercolor, font=dict(color=hover_font_color))
+                hoverlabel=dict(bgcolor=hover_colors['bgcolor'], bordercolor=hover_colors['bordercolor'], font=dict(color=theme_colors["text"]))
             ))
         else:
             # All industries view - show all security types
@@ -1082,7 +957,7 @@ def get_monthly_activity(metric: str = "count", industry: str = "all", theme: st
                 line=dict(color='#3B82F6', width=3), marker=dict(size=6),
                 hovertemplate=hover_tmpl,
                 customdata=equity_customdata,
-                hoverlabel=dict(bgcolor=hover_bgcolor, bordercolor=hover_bordercolor, font=dict(color=hover_font_color))
+                hoverlabel=dict(bgcolor=hover_colors['bgcolor'], bordercolor=hover_colors['bordercolor'], font=dict(color=theme_colors["text"]))
             ))
             
             fig.add_trace(go.Scatter(
@@ -1090,7 +965,7 @@ def get_monthly_activity(metric: str = "count", industry: str = "all", theme: st
                 line=dict(color='#F59E0B', width=3), marker=dict(size=6),
                 hovertemplate=hover_tmpl,
                 customdata=debt_customdata,
-                hoverlabel=dict(bgcolor=hover_bgcolor, bordercolor=hover_bordercolor, font=dict(color=hover_font_color))
+                hoverlabel=dict(bgcolor=hover_colors['bgcolor'], bordercolor=hover_colors['bordercolor'], font=dict(color=theme_colors["text"]))
             ))
             
             fig.add_trace(go.Scatter(
@@ -1098,7 +973,7 @@ def get_monthly_activity(metric: str = "count", industry: str = "all", theme: st
                 line=dict(color='#10B981', width=3), marker=dict(size=6),
                 hovertemplate=hover_tmpl,
                 customdata=fund_customdata,
-                hoverlabel=dict(bgcolor=hover_bgcolor, bordercolor=hover_bordercolor, font=dict(color=hover_font_color))
+                hoverlabel=dict(bgcolor=hover_colors['bgcolor'], bordercolor=hover_colors['bordercolor'], font=dict(color=theme_colors["text"]))
             ))
         
         # Add filtering context to title
@@ -1149,10 +1024,7 @@ def get_monthly_activity(metric: str = "count", industry: str = "all", theme: st
         fig.update_layout(layout_config)
         
         # Convert figure to JSON and apply config
-        figure_json = json.loads(fig.to_json())
-        figure_json['config'] = get_toolbar_config()
-
-        return figure_json
+        return figure_to_json(fig)
         
     except Exception as e:
         print(f"Error in monthly_activity: {e}")
@@ -1179,14 +1051,9 @@ def get_top_fundraisers(year: str = None, industry: str = None, metric: str = "o
         data = fetch_backend_data(endpoint)
         
         if not data or not data.get("top_fundraisers"):
-            fundraisers = [
-                {"company_name": "TechCorp Inc", "amount": 500000000, "formatted_amount": "$500M", "security_type": "Equity"},
-                {"company_name": "HealthVentures LLC", "amount": 250000000, "formatted_amount": "$250M", "security_type": "Equity"},
-                {"company_name": "GreenEnergy Partners", "amount": 150000000, "formatted_amount": "$150M", "security_type": "Fund"},
-                {"company_name": "FinTech Solutions", "amount": 100000000, "formatted_amount": "$100M", "security_type": "Debt"}
-            ]
-        else:
-            fundraisers = data["top_fundraisers"][:20]
+            return {"error": "No data available from backend"}
+        
+        fundraisers = data["top_fundraisers"][:20]
         
         # Deduplicate companies by keeping only the largest filing per company
         company_aggregated = {}
@@ -1224,19 +1091,6 @@ def get_top_fundraisers(year: str = None, industry: str = None, metric: str = "o
         # Sort data in ascending order for proper display (smallest at bottom, largest at top)
         fundraisers = sorted(fundraisers, key=lambda x: x.get("amount", 0), reverse=False)
         
-        # Helper to format currency as short form ($1.2M, $3.4B, $1.0T)
-        def format_currency_short(value: float) -> str:
-            absolute_value = abs(float(value))
-            if absolute_value >= 1_000_000_000_000:
-                return f"${value / 1_000_000_000_000:.1f}T"
-            if absolute_value >= 1_000_000_000:
-                return f"${value / 1_000_000_000:.1f}B"
-            if absolute_value >= 1_000_000:
-                return f"${value / 1_000_000:.1f}M"
-            if absolute_value >= 1_000:
-                return f"${value / 1_000:.1f}K"
-            return f"${value:,.0f}"
-
         # Get theme colors
         theme_colors = get_theme_colors(theme)
         
@@ -1260,17 +1114,7 @@ def get_top_fundraisers(year: str = None, industry: str = None, metric: str = "o
         )])
         
         # Add filtering context to title
-        filter_context = []
-        if year and year != "all":
-            filter_context.append(f"Year: {year}")
-        if industry and industry != "all":
-            filter_context.append(f"Industry: {industry}")
-        if metric == "amount_sold":
-            filter_context.append("by Amount Sold")
-        else:
-            filter_context.append("by Offering Amount")
-        
-        filter_text = f" ({', '.join(filter_context)})" if filter_context else ""
+        filter_text = build_filter_context(year=year, metric=metric, industry=industry)
         subtitle = f"Real Form D data - largest offering amounts{filter_text}"
         
         # Apply base layout configuration
@@ -1301,10 +1145,7 @@ def get_top_fundraisers(year: str = None, industry: str = None, metric: str = "o
         fig.update_layout(layout_config)
         
         # Convert figure to JSON and apply config
-        figure_json = json.loads(fig.to_json())
-        figure_json['config'] = get_toolbar_config()
-
-        return figure_json
+        return figure_to_json(fig)
         
     except Exception as e:
         print(f"Error in top_fundraisers: {e}")
@@ -1353,62 +1194,16 @@ def get_location_distribution(year: str = None, metric: str = "count", theme: st
             print(f"📊 No distribution data received from backend")
         
         if not data or not data.get("distribution"):
-            print(f"❌ Backend call failed - no data returned for endpoint: {endpoint}")
-            print(f"❌ Backend URL: {BACKEND_URL}")
-            print(f"❌ This means either:")
-            print(f"   1. Backend is not running")
-            print(f"   2. Backend endpoint returned empty data")
-            print(f"   3. Network connection issue")
-            # Try fallback with all years data
-            print(f"🔄 Trying fallback with all years data...")
-            fallback_endpoint = f"charts/location-distribution?metric={metric}"
-            fallback_data = fetch_backend_data(fallback_endpoint)
-            if fallback_data and fallback_data.get("distribution"):
-                distribution = fallback_data["distribution"][:25]
-                print(f"✅ Using all years fallback data: {len(distribution)} locations")
-            else:
-                # Final fallback - hardcoded data
-                distribution = [
-                    {"name": "CA", "value": 450},
-                    {"name": "NY", "value": 380},
-                    {"name": "TX", "value": 320},
-                    {"name": "FL", "value": 280},
-                    {"name": "IL", "value": 250},
-                    {"name": "MA", "value": 220},
-                    {"name": "WA", "value": 200},
-                    {"name": "GA", "value": 180},
-                    {"name": "NC", "value": 160},
-                    {"name": "VA", "value": 140}
-                ]
-                print(f"🔄 Using hardcoded fallback data: {len(distribution)} locations")
-        else:
-            print(f"✅ Using real backend data: {len(data['distribution'])} locations")
-            distribution = data["distribution"][:25]
-            # Add debug info for real data
-            if len(distribution) > 0:
-                print(f"📊 Real data sample - {distribution[0]['name']}: {distribution[0]['value']} filings")
+            return {"error": "No data available from backend"}
+        
+        distribution = data["distribution"][:25]
         
         # OPTIONAL - If raw is True, return the data as a list of dictionaries
         if raw:
             return distribution
         
-        # Helper to format currency as short form ($1.2M, $3.4B, $1.0T)
-        def format_currency_short(value: float) -> str:
-            absolute_value = abs(float(value))
-            if absolute_value >= 1_000_000_000_000:
-                return f"${value / 1_000_000_000_000:.1f}T"
-            if absolute_value >= 1_000_000_000:
-                return f"${value / 1_000_000_000:.1f}B"
-            if absolute_value >= 1_000_000:
-                return f"${value / 1_000_000:.1f}M"
-            if absolute_value >= 1_000:
-                return f"${value / 1_000:.1f}K"
-            return f"${value:,.0f}"
-
-        is_amount_metric = metric in ["offering_amount", "amount_sold"]
-
         # Build hover texts based on metric type
-        if is_amount_metric:
+        if is_amount_metric(metric):
             hover_texts = [f"{item['name']}: {format_currency_short(item['value'])}" for item in distribution]
             colorbar_title_text = "Amount ($)"
         else:
@@ -1432,21 +1227,11 @@ def get_location_distribution(year: str = None, metric: str = "count", theme: st
         ))
         
         # Add filtering context to title
-        filter_context = []
-        if year and year != "all":
-            filter_context.append(f"Year: {year}")
-        if metric == "amount_sold":
-            filter_context.append("by Amount Sold")
-        elif metric == "offering_amount":
-            filter_context.append("by Offering Amount")
-        else:
-            filter_context.append("by Count")
-        
-        filter_text = f" ({', '.join(filter_context)})" if filter_context else ""
+        filter_text = build_filter_context(year=year, metric=metric)
         
         # Calculate total for display in title
         total_value = sum(item.get("value", 0) for item in distribution)
-        total_value_formatted = format_currency_short(total_value) if is_amount_metric else f"{total_value:,}"
+        total_value_formatted = format_currency_short(total_value) if is_amount_metric(metric) else f"{total_value:,}"
         
         # Create more informative subtitle
         if year and year != "all":
@@ -1491,10 +1276,7 @@ def get_location_distribution(year: str = None, metric: str = "count", theme: st
         fig.update_layout(layout_config)
         
         # Convert figure to JSON and apply config
-        figure_json = json.loads(fig.to_json())
-        figure_json['config'] = get_toolbar_config()
-
-        return figure_json
+        return figure_to_json(fig)
         
     except Exception as e:
         print(f"Error in location_distribution: {e}")
@@ -1522,16 +1304,7 @@ def get_yearly_statistics(metric: str = "count", industry: str = "all", theme: s
         data = fetch_backend_data(endpoint)
         
         if not data:
-            # Fallback data - create sample yearly data starting from 2009
-            years = ["2009", "2010", "2011", "2012", "2013", "2014", "2015", "2016", "2017", "2018", "2019", "2020", "2021", "2022", "2023", "2024"]
-            if metric == "offering_amount":
-                values = [2000000000, 2500000000, 3000000000, 3500000000, 4000000000, 4500000000, 5000000000, 5500000000, 6000000000, 6500000000, 7000000000, 7500000000, 8000000000, 8500000000, 9000000000, 9500000000]
-            elif metric == "amount_sold":
-                values = [1500000000, 2000000000, 2500000000, 3000000000, 3500000000, 4000000000, 4500000000, 5000000000, 5500000000, 6000000000, 6500000000, 7000000000, 7500000000, 8000000000, 8500000000, 9000000000]
-            else:
-                values = [500, 600, 700, 800, 900, 1000, 1100, 1200, 1300, 1400, 1500, 1600, 1700, 1800, 1900, 2000]
-            
-            yearly_data = [{"year": year, "value": value} for year, value in zip(years, values)]
+            return {"error": "No data available from backend"}
         else:
             # Aggregate monthly data into yearly totals
             yearly_totals = {}
@@ -1576,19 +1349,6 @@ def get_yearly_statistics(metric: str = "count", industry: str = "all", theme: s
         # Sort by year
         yearly_data = sorted(yearly_data, key=lambda x: x.get("year", "0"))
         
-        # Helper to format currency as short form
-        def format_currency_short(value: float) -> str:
-            absolute_value = abs(float(value))
-            if absolute_value >= 1_000_000_000_000:
-                return f"${value / 1_000_000_000_000:.1f}T"
-            if absolute_value >= 1_000_000_000:
-                return f"${value / 1_000_000_000:.1f}B"
-            if absolute_value >= 1_000_000:
-                return f"${value / 1_000_000:.1f}M"
-            if absolute_value >= 1_000:
-                return f"${value / 1_000:.1f}K"
-            return f"${value:,.0f}"
-        
         # Get theme colors
         theme_colors = get_theme_colors(theme)
         
@@ -1597,7 +1357,7 @@ def get_yearly_statistics(metric: str = "count", industry: str = "all", theme: s
         values = [float(item["value"]) for item in yearly_data]
         
         # Format values for display
-        if metric in ["offering_amount", "amount_sold"]:
+        if is_amount_metric(metric):
             text_values = [format_currency_short(val) for val in values]
             y_title = "Amount ($)"
             hover_template = '<b>%{x}</b><br>Amount: %{customdata}<extra></extra>'
@@ -1619,17 +1379,7 @@ def get_yearly_statistics(metric: str = "count", industry: str = "all", theme: s
         )])
         
         # Add filtering context to title
-        filter_context = []
-        if industry and industry != "all":
-            filter_context.append(f"Industry: {industry}")
-        if metric == "amount_sold":
-            filter_context.append("by Amount Sold")
-        elif metric == "offering_amount":
-            filter_context.append("by Offering Amount")
-        else:
-            filter_context.append("by Count")
-        
-        filter_text = f" ({', '.join(filter_context)})" if filter_context else ""
+        filter_text = build_filter_context(metric=metric, industry=industry)
         subtitle = f"Annual totals by year{filter_text}"
         
         # Apply base layout configuration
@@ -1660,10 +1410,7 @@ def get_yearly_statistics(metric: str = "count", industry: str = "all", theme: s
         fig.update_layout(layout_config)
         
         # Convert figure to JSON and apply config
-        figure_json = json.loads(fig.to_json())
-        figure_json['config'] = get_toolbar_config()
-
-        return figure_json
+        return figure_to_json(fig)
         
     except Exception as e:
         print(f"Error in yearly_statistics: {e}")
@@ -1686,32 +1433,10 @@ def get_available_years():
                 options.append({"label": str(year), "value": str(year)})
             return {"years": options}
         else:
-            # Fallback to static years if backend doesn't provide them
-            return {
-                "years": [
-                    {"label": "All Years", "value": "all"},
-                    {"label": "2025", "value": "2025"},
-                    {"label": "2024", "value": "2024"},
-                    {"label": "2023", "value": "2023"},
-                    {"label": "2022", "value": "2022"},
-                    {"label": "2021", "value": "2021"},
-                    {"label": "2020", "value": "2020"},
-                    {"label": "2019", "value": "2019"},
-                    {"label": "2018", "value": "2018"},
-                    {"label": "2017", "value": "2017"},
-                    {"label": "2016", "value": "2016"},
-                    {"label": "2015", "value": "2015"},
-                    {"label": "2014", "value": "2014"},
-                    {"label": "2013", "value": "2013"},
-                    {"label": "2012", "value": "2012"},
-                    {"label": "2011", "value": "2011"},
-                    {"label": "2010", "value": "2010"},
-                    {"label": "2009", "value": "2009"}
-                ]
-            }
+            return {"error": "No data available from backend"}
     except Exception as e:
         print(f"Error getting available years: {e}")
-        return {"years": [{"label": "All Years", "value": "all"}]}
+        return {"error": str(e)}
 
 if __name__ == "__main__":
     print("🚀 Starting Form D Analytics Hub")
@@ -1721,7 +1446,7 @@ if __name__ == "__main__":
     print("🗺️  Geographic: US State Distribution")
     print("💰 Top Fundraisers: Largest Offering Amounts")
     print("📈 Three Tabs: Overview, Market Trends, Geographic Analysis")
-    print("🔗 Real data from Railway backend with smart fallbacks")
+    print("🔗 Real data from Railway backend")
     print("🔧 Widget types: markdown, table, chart")
     print("📝 Form D Intro: Professional markdown content without emojis")
     print("📊 Security Types: Returns Plotly chart JSON for OpenBB chart widget")
