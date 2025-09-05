@@ -2,7 +2,7 @@
 import json
 import os
 import requests
-from datetime import datetime
+from datetime import datetime, timedelta
 import pandas as pd
 import plotly.graph_objects as go
 import plotly.express as px
@@ -11,6 +11,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 import uvicorn
+from functools import wraps
+import time
+import hashlib
 
 # Initialize FastAPI application
 app = FastAPI(
@@ -38,14 +41,60 @@ app.add_middleware(
 # Backend configuration
 BACKEND_URL = os.getenv("FORM_D_BACKEND_URL", "https://web-production-570e.up.railway.app")
 
+# Simple in-memory cache
+cache_store = {}
+CACHE_DURATION = 5 * 60  # 5 minutes in seconds
+
+def create_cache_key(func_name: str, **kwargs) -> str:
+    """Create a unique cache key from function name and parameters"""
+    # Sort kwargs to ensure consistent key generation
+    key_parts = [func_name]
+    for k, v in sorted(kwargs.items()):
+        key_parts.append(f"{k}={v}")
+    key_string = "|".join(key_parts)
+    return hashlib.md5(key_string.encode()).hexdigest()
+
+def cache_response(func):
+    """Decorator to cache function responses for 5 minutes"""
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        # Create cache key from function name and arguments
+        cache_key = create_cache_key(func.__name__, **kwargs)
+        
+        # Check if we have a cached response
+        if cache_key in cache_store:
+            cached_data, timestamp = cache_store[cache_key]
+            if time.time() - timestamp < CACHE_DURATION:
+                print(f"📦 Cache hit for {func.__name__}")
+                return cached_data
+            else:
+                # Cache expired, remove it
+                del cache_store[cache_key]
+        
+        # Execute function and cache result
+        print(f"🔄 Cache miss for {func.__name__} - fetching fresh data")
+        result = func(*args, **kwargs)
+        cache_store[cache_key] = (result, time.time())
+        return result
+    
+    return wrapper
+
 def get_theme_colors(theme: str = "dark"):
     """Get theme-specific colors for charts"""
-    return {
+    if theme == "light":
+        return {
+            "main_line": "#3B82F6",
+            "background": "rgba(255,255,255,0)",
+            "text": "black",
+            "grid": "rgba(0,0,0,0.1)"
+        }
+    else:
+        return {
             "main_line": "#3B82F6",
             "background": "rgba(0,0,0,0)",
             "text": "white",
             "grid": "rgba(255,255,255,0.1)"
-    }
+        }
 
 def get_toolbar_config():
     """Get standard toolbar configuration for charts"""
@@ -74,10 +123,16 @@ def format_currency_short(value: float) -> str:
 
 def get_hover_colors(theme: str = "dark"):
     """Get hover color configuration for charts"""
-    return {
-        'bgcolor': '#111827' if theme != 'light' else 'white',
-        'bordercolor': '#374151' if theme != 'light' else '#E5E7EB'
-    }
+    if theme == "light":
+        return {
+            'bgcolor': 'white',
+            'bordercolor': '#E5E7EB'
+        }
+    else:
+        return {
+            'bgcolor': '#111827',
+            'bordercolor': '#374151'
+        }
 
 def is_amount_metric(metric: str) -> bool:
     """Check if metric is an amount-based metric"""
@@ -208,12 +263,12 @@ def base_layout(theme: str = "dark"):
         'xaxis': {
             'gridcolor': colors["grid"],
             'tickcolor': colors["text"],
-            'titlefont': {'color': colors["text"]}
+            'title': {'font': {'color': colors["text"]}}
         },
         'yaxis': {
             'gridcolor': colors["grid"],
             'tickcolor': colors["text"],
-            'titlefont': {'color': colors["text"]}
+            'title': {'font': {'color': colors["text"]}}
         }
     }
 
@@ -328,6 +383,7 @@ def get_latest_filings(page: int = 1, per_page: int = 15):
         return [{"error": str(e)}]
 
 @app.get("/security_types")
+@cache_response
 def get_security_types(year: str = None, metric: str = "count", theme: str = "dark", raw: bool = False):
     """Get security type distribution chart with filtering options"""
     try:
@@ -397,7 +453,7 @@ def get_security_types(year: str = None, metric: str = "count", theme: str = "da
             marker_colors=colors[:len(final_data)],
             textinfo='label+percent',
             textposition='auto',
-            textfont=dict(color='white', size=12),
+            textfont=dict(color=theme_colors["text"], size=12),
             hovertemplate=hover_template,
             customdata=formatted_values
         )])
@@ -426,7 +482,8 @@ def get_security_types(year: str = None, metric: str = "count", theme: str = "da
         print(f"❌ Error in security_types: {e}")
         return {"error": str(e)}
 
-@app.get("/top_industries") 
+@app.get("/top_industries")
+@cache_response
 def get_top_industries(year: str = None, metric: str = "count", theme: str = "dark", raw: bool = False):
     """Get top 10 industries chart with filtering options"""
     try:
@@ -483,13 +540,13 @@ def get_top_industries(year: str = None, metric: str = "count", theme: str = "da
             'margin': {'l': 150, 'r': 50, 't': 80, 'b': 50},
             'xaxis': {
                 'range': [0, max([item["value"] for item in distribution]) * 1.1],
-                'title_font_color': theme_colors["text"],
-                'tickfont_color': theme_colors["text"],
+                'title': {'font': {'color': theme_colors["text"]}},
+                'tickfont': {'color': theme_colors["text"]},
                 'gridcolor': theme_colors["grid"]
             },
             'yaxis': {
-                'title_font_color': theme_colors["text"],
-                'tickfont_color': theme_colors["text"],
+                'title': {'font': {'color': theme_colors["text"]}},
+                'tickfont': {'color': theme_colors["text"]},
                 'gridcolor': theme_colors["grid"]
             },
             'dragmode': False
@@ -505,6 +562,7 @@ def get_top_industries(year: str = None, metric: str = "count", theme: str = "da
         return {"error": str(e)}
 
 @app.get("/monthly_activity")
+@cache_response
 def get_monthly_activity(metric: str = "count", industry: str = "all", theme: str = "dark", raw: bool = False):
     """Get monthly filing activity time series with metric and industry selection"""
     try:
@@ -712,14 +770,14 @@ def get_monthly_activity(metric: str = "count", industry: str = "all", theme: st
             'hovermode': 'x',
             'margin': {'l': 80, 'r': 50, 't': 80, 'b': 80},
             'xaxis': {
-                'title_font_color': theme_colors["text"],
-                'tickfont_color': theme_colors["text"],
+                'title': {'font': {'color': theme_colors["text"]}},
+                'tickfont': {'color': theme_colors["text"]},
                 'gridcolor': theme_colors["grid"]
             },
             'yaxis': {
                 'range': [0, max(max(equity_data), max(debt_data), max(fund_data)) * 1.1],
-                'title_font_color': theme_colors["text"],
-                'tickfont_color': theme_colors["text"],
+                'title': {'font': {'color': theme_colors["text"]}},
+                'tickfont': {'color': theme_colors["text"]},
                 'gridcolor': theme_colors["grid"]
             },
             'legend': {
@@ -738,6 +796,7 @@ def get_monthly_activity(metric: str = "count", industry: str = "all", theme: st
         return {"error": str(e)}
 
 @app.get("/top_fundraisers")
+@cache_response
 def get_top_fundraisers(year: str = None, industry: str = None, metric: str = "offering_amount", theme: str = "dark", raw: bool = False):
     """Get top 20 fundraisers chart with filtering options"""
     try:
@@ -799,13 +858,13 @@ def get_top_fundraisers(year: str = None, industry: str = None, metric: str = "o
             'margin': {'l': 200, 'r': 50, 't': 80, 'b': 80},
             'xaxis': {
                 'range': [0, max([item["amount"] for item in fundraisers]) * 1.1],
-                'title_font_color': theme_colors["text"],
-                'tickfont_color': theme_colors["text"],
+                'title': {'font': {'color': theme_colors["text"]}},
+                'tickfont': {'color': theme_colors["text"]},
                 'gridcolor': theme_colors["grid"]
             },
             'yaxis': {
-                'title_font_color': theme_colors["text"],
-                'tickfont_color': theme_colors["text"],
+                'title': {'font': {'color': theme_colors["text"]}},
+                'tickfont': {'color': theme_colors["text"]},
                 'gridcolor': theme_colors["grid"]
             },
             'dragmode': False
@@ -821,6 +880,7 @@ def get_top_fundraisers(year: str = None, industry: str = None, metric: str = "o
         return {"error": str(e)}
 
 @app.get("/location_distribution")
+@cache_response
 def get_location_distribution(year: str = None, metric: str = "count", theme: str = "dark", raw: bool = False):
     """Get geographic distribution of filings with filtering options"""
     try:
@@ -877,17 +937,46 @@ def get_location_distribution(year: str = None, metric: str = "count", theme: st
         # Get theme colors
         theme_colors = get_theme_colors(theme)
         
+        # Set map colors based on theme
+        if theme == "light":
+            land_color = 'rgba(240,240,240,0.8)'  # Light gray for land
+            coast_color = 'rgba(0,0,0,0.6)'       # Dark outline for coastlines
+            lake_color = 'rgba(255,255,255,1)'    # White lakes
+            ocean_color = 'rgba(245,245,245,1)'   # Light gray ocean
+            state_border_color = 'rgba(0,0,0,0.8)' # Black state borders for visibility
+            state_border_width = 1.5              # Thicker borders in light mode
+        else:
+            land_color = 'rgba(255,255,255,0.1)'  # Dark mode land
+            coast_color = 'rgba(255,255,255,0.3)' # Light outline for dark mode
+            lake_color = 'rgb(255, 255, 255)'     # White lakes
+            ocean_color = theme_colors["background"] # Transparent ocean
+            state_border_color = 'rgba(255,255,255,0.4)' # Light state borders for dark mode
+            state_border_width = 1.0              # Standard borders in dark mode
+        
+        # Create custom colorscale - make lowest values match land color (transparent for empty states)
+        custom_colorscale = [
+            [0.0, land_color],      # Empty states use land color 
+            [0.001, '#deebf7'],     # Very light blue for minimal values
+            [0.2, '#c6dbef'],       # Light blue
+            [0.4, '#9ecae1'],       # Medium light blue
+            [0.6, '#6baed6'],       # Medium blue
+            [0.8, '#4292c6'],       # Medium dark blue
+            [1.0, '#2171b5']        # Dark blue for highest values
+        ]
+        
         fig = go.Figure(data=go.Choropleth(
             locations=[item["name"] for item in distribution],
             z=[item["value"] for item in distribution],
             locationmode='USA-states',
-            colorscale='Blues',
+            colorscale=custom_colorscale,
             text=hover_texts,
             hovertemplate='<b>%{text}</b><extra></extra>',
             colorbar=dict(
                 title=dict(text=colorbar_title_text, font=dict(color=theme_colors["text"])),
                 tickfont=dict(color=theme_colors["text"])
-            )
+            ),
+            zmin=0,  # Minimum value is 0 - states without data will use land_color
+            showscale=True
         ))
         
         # Add filtering context to title
@@ -919,14 +1008,17 @@ def get_location_distribution(year: str = None, metric: str = "count", theme: st
                 'scope': 'usa',
                 'projection': {'type': 'albers usa'},
                 'showlakes': True,
-                'lakecolor': 'rgb(255, 255, 255)',
+                'lakecolor': lake_color,
                 'bgcolor': theme_colors["background"],
-                'landcolor': 'rgba(255,255,255,0.1)',
-                'coastlinecolor': 'rgba(255,255,255,0.3)',
+                'landcolor': land_color,
+                'coastlinecolor': coast_color,
                 'showland': True,
                 'showcoastlines': True,
                 'showocean': True,
-                'oceancolor': theme_colors["background"]
+                'oceancolor': ocean_color,
+                'subunitcolor': state_border_color,  # State border lines
+                'subunitwidth': state_border_width,  # State border thickness
+                'showsubunits': True                 # Show state boundaries
             },
             'height': 600,
             'margin': {'l': 50, 'r': 50, 't': 80, 'b': 50},
@@ -943,6 +1035,7 @@ def get_location_distribution(year: str = None, metric: str = "count", theme: st
         return {"error": str(e)}
 
 @app.get("/yearly_statistics")
+@cache_response
 def get_yearly_statistics(metric: str = "count", industry: str = "all", theme: str = "dark", raw: bool = False):
     """Get yearly statistics by aggregating monthly data from existing endpoints"""
     try:
@@ -1046,13 +1139,13 @@ def get_yearly_statistics(metric: str = "count", industry: str = "all", theme: s
             'height': 500,
             'margin': {'l': 80, 'r': 50, 't': 80, 'b': 80},
             'xaxis': {
-                'title_font_color': theme_colors["text"],
-                'tickfont_color': theme_colors["text"],
+                'title': {'font': {'color': theme_colors["text"]}},
+                'tickfont': {'color': theme_colors["text"]},
                 'gridcolor': theme_colors["grid"]
             },
             'yaxis': {
-                'title_font_color': theme_colors["text"],
-                'tickfont_color': theme_colors["text"],
+                'title': {'font': {'color': theme_colors["text"]}},
+                'tickfont': {'color': theme_colors["text"]},
                 'gridcolor': theme_colors["grid"]
             },
             'dragmode': False
@@ -1068,6 +1161,7 @@ def get_yearly_statistics(metric: str = "count", industry: str = "all", theme: s
         return {"error": str(e)}
 
 @app.get("/api/available_years")
+@cache_response
 def get_available_years():
     """Get available years from the backend for dynamic filtering"""
     try:
@@ -1088,6 +1182,29 @@ def get_available_years():
     except Exception as e:
         print(f"Error getting available years: {e}")
         return {"error": str(e)}
+
+@app.get("/cache_status")
+def get_cache_status():
+    """Debug endpoint to check cache status"""
+    current_time = time.time()
+    cache_info = []
+    
+    for key, (data, timestamp) in cache_store.items():
+        age = current_time - timestamp
+        is_expired = age >= CACHE_DURATION
+        cache_info.append({
+            "key": key[:16] + "..." if len(key) > 16 else key,
+            "age_seconds": round(age, 1),
+            "expires_in": round(CACHE_DURATION - age, 1) if not is_expired else 0,
+            "is_expired": is_expired,
+            "data_type": type(data).__name__
+        })
+    
+    return {
+        "cache_duration": CACHE_DURATION,
+        "total_cached_items": len(cache_store),
+        "items": cache_info
+    }
 
 if __name__ == "__main__":
     print("🚀 Starting Form D Analytics Hub")
@@ -1112,3 +1229,4 @@ if __name__ == "__main__":
     print(f"📱 Apps: http://localhost:{port}/apps.json")
     print("=" * 60)
     
+    uvicorn.run(app, host="0.0.0.0", port=port)
