@@ -40,12 +40,20 @@ BACKEND_URL = os.getenv("FORM_D_BACKEND_URL", "https://web-production-570e.up.ra
 
 def get_theme_colors(theme: str = "dark"):
     """Get theme-specific colors for charts"""
-    return {
+    if theme == "light":
+        return {
+            "main_line": "#3B82F6",
+            "background": "rgba(255,255,255,0)",
+            "text": "black",
+            "grid": "rgba(0,0,0,0.1)"
+        }
+    else:
+        return {
             "main_line": "#3B82F6",
             "background": "rgba(0,0,0,0)",
             "text": "white",
             "grid": "rgba(255,255,255,0.1)"
-    }
+        }
 
 def get_toolbar_config():
     """Get standard toolbar configuration for charts"""
@@ -74,10 +82,16 @@ def format_currency_short(value: float) -> str:
 
 def get_hover_colors(theme: str = "dark"):
     """Get hover color configuration for charts"""
-    return {
-        'bgcolor': '#111827' if theme != 'light' else 'white',
-        'bordercolor': '#374151' if theme != 'light' else '#E5E7EB'
-    }
+    if theme == "light":
+        return {
+            'bgcolor': 'white',
+            'bordercolor': '#E5E7EB'
+        }
+    else:
+        return {
+            'bgcolor': '#111827',
+            'bordercolor': '#374151'
+        }
 
 def is_amount_metric(metric: str) -> bool:
     """Check if metric is an amount-based metric"""
@@ -208,12 +222,12 @@ def base_layout(theme: str = "dark"):
         'xaxis': {
             'gridcolor': colors["grid"],
             'tickcolor': colors["text"],
-            'titlefont': {'color': colors["text"]}
+            'title': {'font': {'color': colors["text"]}}
         },
         'yaxis': {
             'gridcolor': colors["grid"],
             'tickcolor': colors["text"],
-            'titlefont': {'color': colors["text"]}
+            'title': {'font': {'color': colors["text"]}}
         }
     }
 
@@ -397,7 +411,7 @@ def get_security_types(year: str = None, metric: str = "count", theme: str = "da
             marker_colors=colors[:len(final_data)],
             textinfo='label+percent',
             textposition='auto',
-            textfont=dict(color='white', size=12),
+            textfont=dict(color=theme_colors["text"], size=12),
             hovertemplate=hover_template,
             customdata=formatted_values
         )])
@@ -483,13 +497,13 @@ def get_top_industries(year: str = None, metric: str = "count", theme: str = "da
             'margin': {'l': 150, 'r': 50, 't': 80, 'b': 50},
             'xaxis': {
                 'range': [0, max([item["value"] for item in distribution]) * 1.1],
-                'title_font_color': theme_colors["text"],
-                'tickfont_color': theme_colors["text"],
+                'title': {'font': {'color': theme_colors["text"]}},
+                'tickfont': {'color': theme_colors["text"]},
                 'gridcolor': theme_colors["grid"]
             },
             'yaxis': {
-                'title_font_color': theme_colors["text"],
-                'tickfont_color': theme_colors["text"],
+                'title': {'font': {'color': theme_colors["text"]}},
+                'tickfont': {'color': theme_colors["text"]},
                 'gridcolor': theme_colors["grid"]
             },
             'dragmode': False
@@ -712,14 +726,14 @@ def get_monthly_activity(metric: str = "count", industry: str = "all", theme: st
             'hovermode': 'x',
             'margin': {'l': 80, 'r': 50, 't': 80, 'b': 80},
             'xaxis': {
-                'title_font_color': theme_colors["text"],
-                'tickfont_color': theme_colors["text"],
+                'title': {'font': {'color': theme_colors["text"]}},
+                'tickfont': {'color': theme_colors["text"]},
                 'gridcolor': theme_colors["grid"]
             },
             'yaxis': {
                 'range': [0, max(max(equity_data), max(debt_data), max(fund_data)) * 1.1],
-                'title_font_color': theme_colors["text"],
-                'tickfont_color': theme_colors["text"],
+                'title': {'font': {'color': theme_colors["text"]}},
+                'tickfont': {'color': theme_colors["text"]},
                 'gridcolor': theme_colors["grid"]
             },
             'legend': {
@@ -799,13 +813,13 @@ def get_top_fundraisers(year: str = None, industry: str = None, metric: str = "o
             'margin': {'l': 200, 'r': 50, 't': 80, 'b': 80},
             'xaxis': {
                 'range': [0, max([item["amount"] for item in fundraisers]) * 1.1],
-                'title_font_color': theme_colors["text"],
-                'tickfont_color': theme_colors["text"],
+                'title': {'font': {'color': theme_colors["text"]}},
+                'tickfont': {'color': theme_colors["text"]},
                 'gridcolor': theme_colors["grid"]
             },
             'yaxis': {
-                'title_font_color': theme_colors["text"],
-                'tickfont_color': theme_colors["text"],
+                'title': {'font': {'color': theme_colors["text"]}},
+                'tickfont': {'color': theme_colors["text"]},
                 'gridcolor': theme_colors["grid"]
             },
             'dragmode': False
@@ -877,17 +891,46 @@ def get_location_distribution(year: str = None, metric: str = "count", theme: st
         # Get theme colors
         theme_colors = get_theme_colors(theme)
         
+        # Set map colors based on theme
+        if theme == "light":
+            land_color = 'rgba(240,240,240,0.8)'  # Light gray for land
+            coast_color = 'rgba(0,0,0,0.6)'       # Dark outline for coastlines
+            lake_color = 'rgba(255,255,255,1)'    # White lakes
+            ocean_color = 'rgba(245,245,245,1)'   # Light gray ocean
+            state_border_color = 'rgba(0,0,0,0.8)' # Black state borders for visibility
+            state_border_width = 1.5              # Thicker borders in light mode
+        else:
+            land_color = 'rgba(255,255,255,0.1)'  # Dark mode land
+            coast_color = 'rgba(255,255,255,0.3)' # Light outline for dark mode
+            lake_color = 'rgb(255, 255, 255)'     # White lakes
+            ocean_color = theme_colors["background"] # Transparent ocean
+            state_border_color = 'rgba(255,255,255,0.4)' # Light state borders for dark mode
+            state_border_width = 1.0              # Standard borders in dark mode
+        
+        # Create custom colorscale - make lowest values match land color (transparent for empty states)
+        custom_colorscale = [
+            [0.0, land_color],      # Empty states use land color 
+            [0.001, '#deebf7'],     # Very light blue for minimal values
+            [0.2, '#c6dbef'],       # Light blue
+            [0.4, '#9ecae1'],       # Medium light blue
+            [0.6, '#6baed6'],       # Medium blue
+            [0.8, '#4292c6'],       # Medium dark blue
+            [1.0, '#2171b5']        # Dark blue for highest values
+        ]
+        
         fig = go.Figure(data=go.Choropleth(
             locations=[item["name"] for item in distribution],
             z=[item["value"] for item in distribution],
             locationmode='USA-states',
-            colorscale='Blues',
+            colorscale=custom_colorscale,
             text=hover_texts,
             hovertemplate='<b>%{text}</b><extra></extra>',
             colorbar=dict(
                 title=dict(text=colorbar_title_text, font=dict(color=theme_colors["text"])),
                 tickfont=dict(color=theme_colors["text"])
-            )
+            ),
+            zmin=0,  # Minimum value is 0 - states without data will use land_color
+            showscale=True
         ))
         
         # Add filtering context to title
@@ -919,14 +962,17 @@ def get_location_distribution(year: str = None, metric: str = "count", theme: st
                 'scope': 'usa',
                 'projection': {'type': 'albers usa'},
                 'showlakes': True,
-                'lakecolor': 'rgb(255, 255, 255)',
+                'lakecolor': lake_color,
                 'bgcolor': theme_colors["background"],
-                'landcolor': 'rgba(255,255,255,0.1)',
-                'coastlinecolor': 'rgba(255,255,255,0.3)',
+                'landcolor': land_color,
+                'coastlinecolor': coast_color,
                 'showland': True,
                 'showcoastlines': True,
                 'showocean': True,
-                'oceancolor': theme_colors["background"]
+                'oceancolor': ocean_color,
+                'subunitcolor': state_border_color,  # State border lines
+                'subunitwidth': state_border_width,  # State border thickness
+                'showsubunits': True                 # Show state boundaries
             },
             'height': 600,
             'margin': {'l': 50, 'r': 50, 't': 80, 'b': 50},
@@ -1046,13 +1092,13 @@ def get_yearly_statistics(metric: str = "count", industry: str = "all", theme: s
             'height': 500,
             'margin': {'l': 80, 'r': 50, 't': 80, 'b': 80},
             'xaxis': {
-                'title_font_color': theme_colors["text"],
-                'tickfont_color': theme_colors["text"],
+                'title': {'font': {'color': theme_colors["text"]}},
+                'tickfont': {'color': theme_colors["text"]},
                 'gridcolor': theme_colors["grid"]
             },
             'yaxis': {
-                'title_font_color': theme_colors["text"],
-                'tickfont_color': theme_colors["text"],
+                'title': {'font': {'color': theme_colors["text"]}},
+                'tickfont': {'color': theme_colors["text"]},
                 'gridcolor': theme_colors["grid"]
             },
             'dragmode': False
@@ -1112,3 +1158,4 @@ if __name__ == "__main__":
     print(f"📱 Apps: http://localhost:{port}/apps.json")
     print("=" * 60)
     
+    uvicorn.run(app, host="0.0.0.0", port=port)
