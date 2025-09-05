@@ -1,6 +1,6 @@
 # Form D Analytics Hub
 
-A FastAPI-based analytics dashboard for SEC Form D private placement filings, designed to integrate with OpenBB Workspace.
+A FastAPI-based analytics dashboard for SEC Form D private placement filings, designed to integrate with OpenBB Workspace. This dashboard is based on the data source streamed on https://themarketcast.ai/. 
 
 ## Overview
 
