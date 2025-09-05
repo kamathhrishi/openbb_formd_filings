@@ -138,5 +138,8 @@
       "paramName": "industry",
       "defaultValue": "all"
     }
+  ],
+  "prompts": [
+    "What are the top 3 states for Form D filings and what percentage of total activity do they represent?"
   ]
 }
