@@ -2,7 +2,7 @@
 import json
 import os
 import requests
-from datetime import datetime
+from datetime import datetime, timedelta
 import pandas as pd
 import plotly.graph_objects as go
 import plotly.express as px
@@ -11,6 +11,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 import uvicorn
+from functools import wraps
+import time
+import hashlib
 
 # Initialize FastAPI application
 app = FastAPI(
@@ -37,6 +40,44 @@ app.add_middleware(
 
 # Backend configuration
 BACKEND_URL = os.getenv("FORM_D_BACKEND_URL", "https://web-production-570e.up.railway.app")
+
+# Simple in-memory cache
+cache_store = {}
+CACHE_DURATION = 5 * 60  # 5 minutes in seconds
+
+def create_cache_key(func_name: str, **kwargs) -> str:
+    """Create a unique cache key from function name and parameters"""
+    # Sort kwargs to ensure consistent key generation
+    key_parts = [func_name]
+    for k, v in sorted(kwargs.items()):
+        key_parts.append(f"{k}={v}")
+    key_string = "|".join(key_parts)
+    return hashlib.md5(key_string.encode()).hexdigest()
+
+def cache_response(func):
+    """Decorator to cache function responses for 5 minutes"""
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        # Create cache key from function name and arguments
+        cache_key = create_cache_key(func.__name__, **kwargs)
+        
+        # Check if we have a cached response
+        if cache_key in cache_store:
+            cached_data, timestamp = cache_store[cache_key]
+            if time.time() - timestamp < CACHE_DURATION:
+                print(f"📦 Cache hit for {func.__name__}")
+                return cached_data
+            else:
+                # Cache expired, remove it
+                del cache_store[cache_key]
+        
+        # Execute function and cache result
+        print(f"🔄 Cache miss for {func.__name__} - fetching fresh data")
+        result = func(*args, **kwargs)
+        cache_store[cache_key] = (result, time.time())
+        return result
+    
+    return wrapper
 
 def get_theme_colors(theme: str = "dark"):
     """Get theme-specific colors for charts"""
@@ -342,6 +383,7 @@ def get_latest_filings(page: int = 1, per_page: int = 15):
         return [{"error": str(e)}]
 
 @app.get("/security_types")
+@cache_response
 def get_security_types(year: str = None, metric: str = "count", theme: str = "dark", raw: bool = False):
     """Get security type distribution chart with filtering options"""
     try:
@@ -440,7 +482,8 @@ def get_security_types(year: str = None, metric: str = "count", theme: str = "da
         print(f"❌ Error in security_types: {e}")
         return {"error": str(e)}
 
-@app.get("/top_industries") 
+@app.get("/top_industries")
+@cache_response
 def get_top_industries(year: str = None, metric: str = "count", theme: str = "dark", raw: bool = False):
     """Get top 10 industries chart with filtering options"""
     try:
@@ -519,6 +562,7 @@ def get_top_industries(year: str = None, metric: str = "count", theme: str = "da
         return {"error": str(e)}
 
 @app.get("/monthly_activity")
+@cache_response
 def get_monthly_activity(metric: str = "count", industry: str = "all", theme: str = "dark", raw: bool = False):
     """Get monthly filing activity time series with metric and industry selection"""
     try:
@@ -752,6 +796,7 @@ def get_monthly_activity(metric: str = "count", industry: str = "all", theme: st
         return {"error": str(e)}
 
 @app.get("/top_fundraisers")
+@cache_response
 def get_top_fundraisers(year: str = None, industry: str = None, metric: str = "offering_amount", theme: str = "dark", raw: bool = False):
     """Get top 20 fundraisers chart with filtering options"""
     try:
@@ -835,6 +880,7 @@ def get_top_fundraisers(year: str = None, industry: str = None, metric: str = "o
         return {"error": str(e)}
 
 @app.get("/location_distribution")
+@cache_response
 def get_location_distribution(year: str = None, metric: str = "count", theme: str = "dark", raw: bool = False):
     """Get geographic distribution of filings with filtering options"""
     try:
@@ -989,6 +1035,7 @@ def get_location_distribution(year: str = None, metric: str = "count", theme: st
         return {"error": str(e)}
 
 @app.get("/yearly_statistics")
+@cache_response
 def get_yearly_statistics(metric: str = "count", industry: str = "all", theme: str = "dark", raw: bool = False):
     """Get yearly statistics by aggregating monthly data from existing endpoints"""
     try:
@@ -1114,6 +1161,7 @@ def get_yearly_statistics(metric: str = "count", industry: str = "all", theme: s
         return {"error": str(e)}
 
 @app.get("/api/available_years")
+@cache_response
 def get_available_years():
     """Get available years from the backend for dynamic filtering"""
     try:
@@ -1134,6 +1182,29 @@ def get_available_years():
     except Exception as e:
         print(f"Error getting available years: {e}")
         return {"error": str(e)}
+
+@app.get("/cache_status")
+def get_cache_status():
+    """Debug endpoint to check cache status"""
+    current_time = time.time()
+    cache_info = []
+    
+    for key, (data, timestamp) in cache_store.items():
+        age = current_time - timestamp
+        is_expired = age >= CACHE_DURATION
+        cache_info.append({
+            "key": key[:16] + "..." if len(key) > 16 else key,
+            "age_seconds": round(age, 1),
+            "expires_in": round(CACHE_DURATION - age, 1) if not is_expired else 0,
+            "is_expired": is_expired,
+            "data_type": type(data).__name__
+        })
+    
+    return {
+        "cache_duration": CACHE_DURATION,
+        "total_cached_items": len(cache_store),
+        "items": cache_info
+    }
 
 if __name__ == "__main__":
     print("🚀 Starting Form D Analytics Hub")
