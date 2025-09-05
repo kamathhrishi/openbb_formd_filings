@@ -1,145 +1,147 @@
-{
-  "name": "Form D Analytics Dashboard",
-  "img": "",
-  "img_dark": "",
-  "img_light": "",
-  "description": "SEC Form D filing analytics - private placement fundraising insights",
-  "allowCustomization": true,
-  "tabs": {
-    "overview": {
-      "id": "overview",
-      "name": "Overview",
-      "layout": [
-        {
-          "i": "form_d_intro",
-          "x": 0,
-          "y": 2,
-          "w": 40,
-          "h": 6,
-          "groups": []
-        },
-        {
-          "i": "latest_filings",
-          "x": 0,
-          "y": 8,
-          "w": 40,
-          "h": 12,
-          "state": {
-            "chartView": {
-              "enabled": false,
-              "chartType": "line"
-            }
+[
+  {
+    "name": "Form D Analytics Dashboard",
+    "img": "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=250&h=200&fit=crop",
+    "img_dark": "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=250&h=200&fit=crop", 
+    "img_light": "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=250&h=200&fit=crop",
+    "description": "SEC Form D filing analytics - private placement fundraising insights",
+    "allowCustomization": true,
+    "tabs": {
+      "overview": {
+        "id": "overview",
+        "name": "Overview",
+        "layout": [
+          {
+            "i": "form_d_intro",
+            "x": 0,
+            "y": 2,
+            "w": 40,
+            "h": 6,
+            "groups": []
           },
-          "groups": []
-        },
-        {
-          "i": "security_types",
-          "x": 0,
-          "y": 20,
-          "w": 20,
-          "h": 16,
-          "groups": [
-            "Group 1",
-            "Group 2"
-          ]
-        },
-        {
-          "i": "top_industries",
-          "x": 20,
-          "y": 20,
-          "w": 20,
-          "h": 16,
-          "groups": [
-            "Group 1",
-            "Group 2"
-          ]
-        }
-      ]
-    },
-    "trends": {
-      "id": "trends",
-      "name": "Market Trends",
-      "layout": [
-        {
-          "i": "monthly_activity",
-          "x": 0,
-          "y": 2,
-          "w": 40,
-          "h": 15,
-          "groups": [
-            "Group 2",
-            "Group 3"
-          ]
-        },
-        {
-          "i": "yearly_statistics",
-          "x": 0,
-          "y": 17,
-          "w": 40,
-          "h": 16,
-          "groups": [
-            "Group 1",
-            "Group 2",
-            "Group 3"
-          ]
-        },
-        {
-          "i": "top_fundraisers",
-          "x": 0,
-          "y": 33,
-          "w": 40,
-          "h": 24,
-          "state": {
-            "params": {
-              "metric": "count"
-            }
+          {
+            "i": "latest_filings",
+            "x": 0,
+            "y": 8,
+            "w": 40,
+            "h": 12,
+            "state": {
+              "chartView": {
+                "enabled": false,
+                "chartType": "line"
+              }
+            },
+            "groups": []
           },
-          "groups": [
-            "Group 1",
-            "Group 2",
-            "Group 3"
-          ]
-        }
-      ]
+          {
+            "i": "security_types",
+            "x": 0,
+            "y": 20,
+            "w": 20,
+            "h": 16,
+            "groups": [
+              "Group 1",
+              "Group 2"
+            ]
+          },
+          {
+            "i": "top_industries",
+            "x": 20,
+            "y": 20,
+            "w": 20,
+            "h": 16,
+            "groups": [
+              "Group 1",
+              "Group 2"
+            ]
+          }
+        ]
+      },
+      "trends": {
+        "id": "trends",
+        "name": "Market Trends",
+        "layout": [
+          {
+            "i": "monthly_activity",
+            "x": 0,
+            "y": 2,
+            "w": 40,
+            "h": 15,
+            "groups": [
+              "Group 2",
+              "Group 3"
+            ]
+          },
+          {
+            "i": "yearly_statistics",
+            "x": 0,
+            "y": 17,
+            "w": 40,
+            "h": 16,
+            "groups": [
+              "Group 1",
+              "Group 2",
+              "Group 3"
+            ]
+          },
+          {
+            "i": "top_fundraisers",
+            "x": 0,
+            "y": 33,
+            "w": 40,
+            "h": 24,
+            "state": {
+              "params": {
+                "metric": "count"
+              }
+            },
+            "groups": [
+              "Group 1",
+              "Group 2",
+              "Group 3"
+            ]
+          }
+        ]
+      },
+      "geography": {
+        "id": "geography",
+        "name": "Geographic Analysis",
+        "layout": [
+          {
+            "i": "location_distribution",
+            "x": 0,
+            "y": 2,
+            "w": 40,
+            "h": 18,
+            "groups": [
+              "Group 2"
+            ]
+          }
+        ]
+      }
     },
-    "geography": {
-      "id": "geography",
-      "name": "Geographic Analysis",
-      "layout": [
-        {
-          "i": "location_distribution",
-          "x": 0,
-          "y": 2,
-          "w": 40,
-          "h": 18,
-          "groups": [
-            "Group 2"
-          ]
-        }
-      ]
-    }
-  },
-  "groups": [
-    {
-      "name": "Group 1",
-      "type": "param",
-      "paramName": "year",
-      "defaultValue": "all"
-    },
-    {
-      "name": "Group 2",
-      "type": "param",
-      "paramName": "metric",
-      "defaultValue": "count"
-    },
-    {
-      "name": "Group 3",
-      "type": "param",
-      "paramName": "industry",
-      "defaultValue": "all"
-    }
-  ],
-  "prompts": [
-    "What are the top 3 states for Form D filings and what percentage of total activity do they represent?"
-  ]
-}
+    "groups": [
+      {
+        "name": "Group 1",
+        "type": "param",
+        "paramName": "year",
+        "defaultValue": "all"
+      },
+      {
+        "name": "Group 2",
+        "type": "param",
+        "paramName": "metric",
+        "defaultValue": "count"
+      },
+      {
+        "name": "Group 3",
+        "type": "param",
+        "paramName": "industry",
+        "defaultValue": "all"
+      }
+    ],
+    "prompts": [
+      "What are the top 3 states for Form D filings and what percentage of total activity do they represent?"
+    ]
+  }
+]
